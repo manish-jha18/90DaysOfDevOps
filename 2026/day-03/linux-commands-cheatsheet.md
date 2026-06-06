@@ -1,5 +1,9 @@
 # Day 03: Linux Commands Cheat Sheet
 
+<img width="1509" height="688" alt="image" src="https://github.com/user-attachments/assets/e4f9a316-c18b-4e2c-8b32-105b5f03ceed" />
+
+
+
 This is my go-to toolkit for navigating Linux, managing system processes, and troubleshooting network issues. 
 
 ## 📁 File System & Navigation
@@ -31,3 +35,5 @@ This is my go-to toolkit for navigating Linux, managing system processes, and tr
 * **`ss -tulpn`** : Lists all active network connections and the ports your server is currently listening on.
 * **`dig <domain.com>`** : Performs a DNS lookup to see the IP addresses tied to a domain name.
 * **`telnet <IP> <Port>`** : Tests if a specific port is open and accepting connections on a remote server.
+
+
