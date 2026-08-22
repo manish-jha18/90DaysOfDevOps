@@ -1,0 +1,25 @@
+# Day 73 - scrape config
+global:
+  # how often to pull metrics from every target
+  scrape_interval: 15s
+  # how often to evaluate alerting/recording rules
+  evaluation_interval: 15s
+  # attached to every metric this server scrapes - identifies the source
+  # once several prometheus servers feed one place
+  external_labels:
+    monitor: devboard-local
+
+scrape_configs:
+  # prometheus scraping itself. Always keep this - it is how you know
+  # the scraper is alive.
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: sample-app
+    static_configs:
+      - targets: ["sample-app:9100"]
+        labels:
+          # labels added here appear on every metric from this target
+          service: sample
+          env: local

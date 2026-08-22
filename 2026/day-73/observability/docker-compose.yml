@@ -1,0 +1,31 @@
+# Day 73 - Prometheus on its own. Days 74-76 add to this file.
+services:
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      # how long to keep samples. The default is 15d.
+      - "--storage.tsdb.retention.time=15d"
+      # hard cap on disk. Whichever limit is hit first wins.
+      - "--storage.tsdb.retention.size=2GB"
+      # lets you POST /-/reload instead of restarting the container
+      - "--web.enable-lifecycle"
+
+  # a tiny app that exposes /metrics, so prometheus has something real to scrape
+  sample-app:
+    image: prom/node-exporter:v1.8.2
+    container_name: sample-app
+    restart: unless-stopped
+    ports:
+      - "9101:9100"
+
+volumes:
+  prometheus_data:
