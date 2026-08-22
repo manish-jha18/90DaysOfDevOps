@@ -1,0 +1,37 @@
+# Day 41 Task 3 - manual trigger with an input
+name: Manual Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Which environment to target'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      dry_run:
+        description: 'Print what would happen without doing it'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show the inputs
+        run: |
+          echo "Environment : ${{ inputs.environment }}"
+          echo "Dry run     : ${{ inputs.dry_run }}"
+          echo "Started by  : ${{ github.actor }}"
+
+      - name: Pretend to deploy
+        if: ${{ inputs.dry_run == false }}
+        run: echo "Deploying to ${{ inputs.environment }}..."
+
+      - name: Dry run notice
+        if: ${{ inputs.dry_run == true }}
+        run: echo "Dry run - nothing was deployed."

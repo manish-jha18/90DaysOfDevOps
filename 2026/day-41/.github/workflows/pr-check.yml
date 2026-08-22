@@ -1,0 +1,23 @@
+# Day 41 Task 1 - run only on pull requests targeting main
+name: PR Check
+
+on:
+  pull_request:
+    branches: [main]
+    # opened = new PR, synchronize = new commits pushed to it,
+    # reopened = a closed PR was reopened
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Announce the PR
+        run: |
+          echo "PR check running for branch: ${{ github.head_ref }}"
+          echo "Merging into              : ${{ github.base_ref }}"
+          echo "PR number                 : ${{ github.event.number }}"
+          echo "Opened by                 : ${{ github.actor }}"

@@ -1,0 +1,18 @@
+# Day 41 Task 2 - cron trigger
+name: Nightly Check
+
+on:
+  schedule:
+    # every day at midnight UTC. cron on GitHub is ALWAYS UTC.
+    - cron: '0 0 * * *'
+  # keep a manual trigger too, so it can be tested without waiting a day
+  workflow_dispatch:
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report
+        run: |
+          echo "Nightly run at $(date -u)"
+          echo "Triggered by: ${{ github.event_name }}"
