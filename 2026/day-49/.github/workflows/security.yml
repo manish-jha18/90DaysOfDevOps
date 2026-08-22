@@ -1,0 +1,113 @@
+# Day 49 - the security checks, gathered into one callable workflow.
+# Called by pr-pipeline and main-pipeline rather than duplicated in both.
+name: Security
+
+on:
+  workflow_call:
+    inputs:
+      scan_images:
+        description: 'Also scan built Docker images (main branch only)'
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      docker_username:
+        required: false
+
+# least privilege: read the code, write security findings, nothing else.
+# security-events: write is required to upload SARIF to the Security tab.
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  secret-scanning:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # gitleaks needs the full history - a secret committed and then
+          # removed is still in an earlier commit
+          fetch-depth: 0
+
+      - name: Scan the history for committed secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Scan Go dependencies
+        # govulncheck only reports vulnerabilities in code paths actually
+        # reachable from your program, so it is far less noisy than a
+        # plain manifest diff
+        run: govulncheck ./... | tee ../govulncheck-report.txt
+        working-directory: backend
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Scan npm dependencies
+        run: npm audit --audit-level=critical
+        working-directory: frontend
+
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-scan-report
+          path: govulncheck-report.txt
+          if-no-files-found: ignore
+          retention-days: 5
+
+  dockerfile-lint:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint the Dockerfile
+        # hadolint catches things like unpinned base images, apt without
+        # cleanup, and running as root - the Day 31/35 rules, enforced
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ matrix.component }}/Dockerfile
+          failure-threshold: error
+
+  filesystem-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy filesystem scan (SARIF for the Security tab)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs.sarif
+          severity: CRITICAL,HIGH
+
+      - name: Upload to the Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-filesystem

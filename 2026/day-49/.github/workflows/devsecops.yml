@@ -1,0 +1,95 @@
+# Day 49 - the full DevSecOps pipeline, security gates included.
+# This is Day 48's main-pipeline with the security jobs wired in as
+# blocking gates rather than bolted on afterwards.
+name: DevSecOps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ---- verify: everything below runs in parallel ----
+
+  security:
+    uses: ./.github/workflows/security.yml
+    permissions:
+      contents: read
+      security-events: write
+
+  build-test:
+    uses: ./.github/workflows/reusable-build-test.yml
+    with:
+      run_tests: true
+
+  # ---- build: only once every check above has passed ----
+
+  tag:
+    runs-on: ubuntu-latest
+    needs: [security, build-test]
+    outputs:
+      sha_tag: ${{ steps.t.outputs.sha_tag }}
+    steps:
+      - id: t
+        run: echo "sha_tag=sha-$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+  docker-backend:
+    needs: tag
+    uses: ./.github/workflows/reusable-docker.yml
+    with:
+      component: backend
+      tag: ${{ needs.tag.outputs.sha_tag }}
+    secrets:
+      docker_username: ${{ secrets.DOCKER_USERNAME }}
+      docker_token: ${{ secrets.DOCKER_TOKEN }}
+
+  docker-frontend:
+    needs: tag
+    uses: ./.github/workflows/reusable-docker.yml
+    with:
+      component: frontend
+      tag: ${{ needs.tag.outputs.sha_tag }}
+    secrets:
+      docker_username: ${{ secrets.DOCKER_USERNAME }}
+      docker_token: ${{ secrets.DOCKER_TOKEN }}
+
+  # ---- deploy ----
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [docker-backend, docker-frontend]
+    environment: production
+    steps:
+      - name: Deploy
+        run: |
+          echo "backend : ${{ needs.docker-backend.outputs.image_url }}"
+          echo "frontend: ${{ needs.docker-frontend.outputs.image_url }}"
+
+  # ---- verify the running app after deploy ----
+
+  dast:
+    runs-on: ubuntu-latest
+    needs: deploy
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for the app to answer
+        run: |
+          timeout 60s sh -c \
+            'until curl -sf http://${{ secrets.DEPLOY_HOST }}:8080 >/dev/null; do sleep 2; done'
+
+      - name: OWASP ZAP baseline scan
+        # DAST - attacks the RUNNING app, unlike everything above which
+        # only reads code and images
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          target: http://${{ secrets.DEPLOY_HOST }}:8080
+          fail_action: false
+          allow_issue_writing: false
