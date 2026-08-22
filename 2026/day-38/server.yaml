@@ -1,0 +1,26 @@
+# Day 38 Task 3 & 4 - nested objects and multi-line strings
+server:
+  name: devboard-app
+  ip: 10.0.2.15
+  port: 8080
+
+database:
+  host: postgres
+  name: devboard
+  credentials:
+    user: devboard
+    password: devboard
+
+# "|" literal block - newlines are KEPT exactly as written
+startup_script: |
+  #!/bin/bash
+  set -euo pipefail
+  echo "starting devboard"
+  docker compose up -d
+  curl -sf http://localhost:8080/health
+
+# ">" folded block - newlines are FOLDED into single spaces
+description: >
+  DevBoard is a three tier demo application
+  with a React frontend, a Go API and a
+  Postgres database, all running in containers.

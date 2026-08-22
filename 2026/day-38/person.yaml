@@ -1,0 +1,21 @@
+# Day 38 Task 1 & 2 - key/value pairs and lists
+name: Manish Jha
+role: DevOps Learner
+experience_years: 3
+learning: true
+
+# block style list - one item per line, each starting with "- "
+tools:
+  - Linux
+  - Git
+  - Docker
+  - Docker Compose
+  - GitHub Actions
+
+# inline (flow) style list - same thing, written like a JSON array
+hobbies: [reading, cricket, cooking]
+
+# quoting matters:
+learning_as_string: "true"     # a string, not a boolean
+version_unquoted: 1.20         # a number - the trailing zero is lost
+version_quoted: "1.20"         # a string - stays exactly as written
