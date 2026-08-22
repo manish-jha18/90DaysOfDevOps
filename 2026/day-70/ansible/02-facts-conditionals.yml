@@ -1,0 +1,51 @@
+---
+- name: Facts and conditionals
+  hosts: webservers
+  become: true
+
+  tasks:
+    - name: A few of the useful facts
+      ansible.builtin.debug:
+        msg:
+          - "distro   : {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "family   : {{ ansible_os_family }}"
+          - "arch     : {{ ansible_architecture }}"
+          - "cpus     : {{ ansible_processor_vcpus }}"
+          - "memory   : {{ ansible_memtotal_mb }} MB"
+          - "ip       : {{ ansible_default_ipv4.address }}"
+          - "hostname : {{ ansible_hostname }}"
+
+    # os_family, not distribution - covers Ubuntu AND Debian in one branch
+    - name: Install on Debian family
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install on RedHat family
+      ansible.builtin.dnf:
+        name: nginx
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    # a list of conditions is an implicit AND
+    - name: Only on a big Ubuntu box
+      ansible.builtin.debug:
+        msg: "this host has room for the full stack"
+      when:
+        - ansible_distribution == "Ubuntu"
+        - ansible_memtotal_mb > 3000
+
+    - name: Only on the primary
+      ansible.builtin.debug:
+        msg: "running primary-only setup"
+      # is defined, then compare - the order matters, or it errors on web2
+      when: server_role is defined and server_role == "primary"
+
+    - name: Skip when a file already exists
+      ansible.builtin.command:
+        cmd: /usr/local/bin/bootstrap.sh
+      when: not bootstrap_marker.stat.exists
+      # register first, then test - see 04-register.yml
+      vars:
+        bootstrap_marker: "{{ marker_check }}"

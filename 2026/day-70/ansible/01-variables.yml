@@ -1,0 +1,35 @@
+---
+- name: Variable precedence, demonstrated
+  hosts: webservers
+  become: true
+
+  # play vars - beaten by almost everything
+  vars:
+    app_name: devboard
+    app_version: "1.0.0"
+
+  # vars from a file, useful for keeping the play readable
+  vars_files:
+    - vars/app.yml
+
+  tasks:
+    - name: Show where each value came from
+      ansible.builtin.debug:
+        msg:
+          - "app_name         : {{ app_name }}          (play vars)"
+          - "app_version      : {{ app_version }}       (play vars, or -e)"
+          - "timezone         : {{ timezone }}          (group_vars/devboard.yml)"
+          - "app_port         : {{ app_port }}          (group_vars/webservers.yml)"
+          - "nginx_worker_conn: {{ nginx_worker_connections }}  (host_vars on web1, group_vars on web2)"
+
+    # task vars - narrowest scope, wins for this task only
+    - name: A task-scoped variable
+      ansible.builtin.debug:
+        msg: "app_version here is {{ app_version }}"
+      vars:
+        app_version: "override-for-this-task-only"
+
+    - name: Default for something that may not be defined
+      ansible.builtin.debug:
+        # without the filter this fails with "undefined variable" on web2
+        msg: "server_role is {{ server_role | default('secondary') }}"

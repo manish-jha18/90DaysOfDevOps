@@ -1,0 +1,50 @@
+---
+- name: Register, debug, and put it together
+  hosts: webservers
+  become: true
+
+  tasks:
+    - name: Check whether the app is already deployed
+      ansible.builtin.stat:
+        path: /opt/devboard/.deployed
+      register: deploy_marker
+
+    - name: Deploy only if it is not there
+      ansible.builtin.debug:
+        msg: "deploying for the first time"
+      when: not deploy_marker.stat.exists
+
+    - name: Get the running kernel
+      ansible.builtin.command:
+        cmd: uname -r
+      register: kernel
+      changed_when: false # a read never changes anything
+
+    - name: Check whether a reboot is pending
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Report
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }} is running kernel {{ kernel.stdout }}
+          and {{ 'NEEDS A REBOOT' if reboot_required.stat.exists else 'is up to date' }}
+
+    - name: Something allowed to fail
+      ansible.builtin.command:
+        cmd: /usr/local/bin/optional-check
+      register: optional
+      # without this, a non-zero exit aborts the whole play for this host
+      failed_when: false
+      changed_when: false
+
+    - name: React to the result
+      ansible.builtin.debug:
+        msg: "optional check returned {{ optional.rc }}"
+
+    # fail deliberately, with a message that explains what to do
+    - name: Refuse to continue on an unsupported OS
+      ansible.builtin.fail:
+        msg: "This playbook supports Debian-family systems only. Found {{ ansible_os_family }}."
+      when: ansible_os_family != "Debian"

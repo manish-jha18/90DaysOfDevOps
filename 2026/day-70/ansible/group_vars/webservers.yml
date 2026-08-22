@@ -1,0 +1,18 @@
+---
+app_port: 8080
+nginx_worker_connections: 1024
+
+# a list, iterated over in 03-loops.yml
+web_packages:
+  - nginx
+  - curl
+  - jq
+
+# a dict of dicts, iterated with dict2items
+app_users:
+  deploy:
+    shell: /bin/bash
+    groups: sudo
+  monitoring:
+    shell: /usr/sbin/nologin
+    groups: adm

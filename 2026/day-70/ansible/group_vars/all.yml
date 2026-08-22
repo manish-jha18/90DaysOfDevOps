@@ -1,0 +1,5 @@
+---
+# group_vars/all.yml applies to every host in every group.
+# Lowest precedence of the group_vars, so anything more specific wins.
+company: devboard-inc
+admin_email: manishkumar181999@gmail.com

@@ -1,0 +1,4 @@
+---
+# beats group_vars/webservers.yml for this host only
+nginx_worker_connections: 512
+server_role: primary

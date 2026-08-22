@@ -1,0 +1,53 @@
+---
+- name: Loops
+  hosts: webservers
+  become: true
+
+  tasks:
+    # simplest form - one task, many items
+    - name: Install a list of packages
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ web_packages }}"
+
+    # BETTER for packages: pass the whole list to the module.
+    # One apt transaction instead of three, which is much faster.
+    - name: Install them all at once instead
+      ansible.builtin.apt:
+        name: "{{ web_packages }}"
+        state: present
+
+    # loop over a list of dicts
+    - name: Create directories with different owners
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: /opt/devboard, owner: ubuntu, mode: "0755" }
+        - { path: /var/log/devboard, owner: syslog, mode: "0750" }
+        - { path: /etc/devboard, owner: root, mode: "0700" }
+
+    # dict2items turns a mapping into a list of key/value pairs
+    - name: Create users from a dict
+      ansible.builtin.user:
+        name: "{{ item.key }}"
+        shell: "{{ item.value.shell }}"
+        groups: "{{ item.value.groups }}"
+        append: true
+      loop: "{{ app_users | dict2items }}"
+      # the default label prints the whole dict, which is unreadable
+      loop_control:
+        label: "{{ item.key }}"
+
+    # retry until something is true
+    - name: Wait for the app to answer
+      ansible.builtin.uri:
+        url: "http://localhost:{{ app_port }}/health"
+        status_code: 200
+      register: health
+      until: health.status == 200
+      retries: 10
+      delay: 3
