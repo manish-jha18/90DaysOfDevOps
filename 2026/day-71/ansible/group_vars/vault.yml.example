@@ -1,0 +1,9 @@
+---
+# Copy to vault.yml, fill in real values, then encrypt:
+#   ansible-vault encrypt group_vars/vault.yml
+#
+# The real vault.yml IS committed, because it is encrypted. That is the
+# whole point - unlike .env files, an encrypted vault is safe in git.
+vault_dockerhub_username: manishjha18
+vault_dockerhub_token: dckr_pat_REPLACE_ME
+vault_postgres_password: REPLACE_ME

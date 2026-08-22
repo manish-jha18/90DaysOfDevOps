@@ -1,0 +1,36 @@
+# {{ ansible_managed }}
+
+upstream devboard_backend {
+    server {{ webserver_upstream_host }}:{{ webserver_upstream_port }};
+}
+
+server {
+    listen {{ webserver_port }};
+    server_name {{ webserver_server_name }};
+
+    root {{ webserver_root }};
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ @backend;
+    }
+
+    location @backend {
+        proxy_pass http://devboard_backend;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+{% for loc in webserver_extra_locations %}
+
+    location {{ loc.path }} {
+        {{ loc.directive }}
+    }
+{% endfor %}
+
+    location /health {
+        access_log off;
+        return 200 "ok\n";
+    }
+}

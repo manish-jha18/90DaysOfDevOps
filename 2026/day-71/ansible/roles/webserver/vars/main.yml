@@ -1,0 +1,6 @@
+---
+# vars/ = very HIGH precedence, nearly impossible to override.
+# Only put things here that must not be changed by a caller.
+webserver_config_path: /etc/nginx/nginx.conf
+webserver_site_path: /etc/nginx/sites-available/devboard
+webserver_service: nginx

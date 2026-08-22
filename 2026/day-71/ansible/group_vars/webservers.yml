@@ -1,0 +1,9 @@
+---
+# Non-secret values live here in plain text, and reference the vault ones.
+# Keeping the indirection means a reader can see WHICH values are secret
+# without decrypting anything.
+dockerhub_username: "{{ vault_dockerhub_username }}"
+dockerhub_token: "{{ vault_dockerhub_token }}"
+postgres_password: "{{ vault_postgres_password }}"
+
+app_port: 8080

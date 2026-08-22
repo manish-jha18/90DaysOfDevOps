@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  author: manish-jha18
+  description: Installs and configures nginx as a reverse proxy for DevBoard
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+
+# roles listed here run BEFORE this one, automatically
+dependencies: []

@@ -1,0 +1,20 @@
+---
+# Roles and collections pulled from Galaxy.
+#   ansible-galaxy install -r requirements.yml
+#   ansible-galaxy collection install -r requirements.yml
+
+roles:
+  # ALWAYS pin a version. Unpinned means someone else's push changes
+  # your servers - the same problem as an unpinned terraform module.
+  - name: geerlingguy.docker
+    version: 7.4.1
+
+  - name: geerlingguy.pip
+    version: 2.2.0
+
+collections:
+  - name: community.general
+    version: ">=9.0.0"
+
+  - name: community.docker
+    version: ">=3.10.0"

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DevBoard on {{ ansible_hostname }}</title>
+  <style>body{font-family:system-ui,sans-serif;max-width:40rem;margin:4rem auto;padding:0 1rem}</style>
+</head>
+<body>
+  <h1>DevBoard</h1>
+  <p>Served by <strong>{{ ansible_hostname }}</strong> ({{ ansible_default_ipv4.address }})</p>
+
+  <h2>Host</h2>
+  <ul>
+    <li>OS: {{ ansible_distribution }} {{ ansible_distribution_version }}</li>
+    <li>Arch: {{ ansible_architecture }}</li>
+    <li>CPUs: {{ ansible_processor_vcpus }}</li>
+    <li>Memory: {{ (ansible_memtotal_mb / 1024) | round(1) }} GiB</li>
+{% if server_role is defined %}
+    <li>Role: {{ server_role }}</li>
+{% endif %}
+  </ul>
+
+  <h2>Upstream</h2>
+  <p>Proxying to {{ webserver_upstream_host }}:{{ webserver_upstream_port }}</p>
+
+  <p><small>Rendered by Ansible on {{ ansible_date_time.iso8601 }}</small></p>
+</body>
+</html>

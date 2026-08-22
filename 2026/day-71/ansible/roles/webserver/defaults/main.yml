@@ -1,0 +1,13 @@
+---
+# defaults/ = the LOWEST precedence in ansible. Anything overrides these,
+# which is exactly what you want for a role's tunable knobs.
+webserver_package: nginx
+webserver_port: 80
+webserver_root: /var/www/devboard
+webserver_worker_processes: auto
+webserver_worker_connections: 1024
+webserver_server_name: _
+webserver_upstream_host: 127.0.0.1
+webserver_upstream_port: 8080
+
+webserver_extra_locations: []

@@ -1,0 +1,31 @@
+---
+- name: Configure the web tier
+  hosts: webservers
+  become: true
+
+  # vault_pass is supplied at runtime:
+  #   ansible-playbook site.yml --ask-vault-pass
+  vars_files:
+    - group_vars/vault.yml
+
+  roles:
+    - role: webserver
+      vars:
+        webserver_port: 80
+        webserver_upstream_port: 8080
+        webserver_extra_locations:
+          - path: /metrics
+            directive: "deny all;"
+
+  post_tasks:
+    - name: Confirm it answers
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}/health"
+        return_content: true
+      delegate_to: localhost
+      become: false
+      register: health
+
+    - name: Report
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} health check: {{ health.content | trim }}"

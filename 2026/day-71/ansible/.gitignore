@@ -1,0 +1,4 @@
+# the DECRYPTED vault must never be committed
+group_vars/vault.yml
+.vault_pass
+*.retry
