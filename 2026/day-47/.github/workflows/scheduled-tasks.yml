@@ -1,0 +1,36 @@
+# Day 47 Task 3 - two schedules on one workflow
+name: Scheduled Tasks
+
+on:
+  schedule:
+    - cron: '30 2 * * 1'      # Mondays 02:30 UTC
+    - cron: '0 */6 * * *'     # every 6 hours
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scheduled:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Which schedule triggered this
+        run: |
+          echo "event    : ${{ github.event_name }}"
+          echo "schedule : ${{ github.event.schedule }}"
+          if [ "${{ github.event.schedule }}" = "30 2 * * 1" ]; then
+            echo "This is the weekly Monday run"
+          elif [ "${{ github.event.schedule }}" = "0 */6 * * *" ]; then
+            echo "This is the six-hourly run"
+          else
+            echo "Triggered manually"
+          fi
+
+      - name: Health check
+        run: |
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" https://github.com)
+          echo "HTTP $CODE"
+          if [ "$CODE" -ne 200 ]; then
+            echo "::error::Health check failed with HTTP $CODE"
+            exit 1
+          fi

@@ -1,0 +1,29 @@
+# Day 47 Task 4 - path and branch filters
+name: Smart Triggers
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/*'
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+    # paths and paths-ignore are mutually exclusive on the same trigger,
+    # so the docs-skip variant lives on the pull_request trigger below
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "Ran because code under backend/ or frontend/ changed"
+          echo "branch: ${{ github.ref_name }}"

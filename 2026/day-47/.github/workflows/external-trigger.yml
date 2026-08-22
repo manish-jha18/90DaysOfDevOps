@@ -1,0 +1,27 @@
+# Day 47 Task 6 - triggered from outside GitHub
+name: External Trigger
+
+on:
+  repository_dispatch:
+    types: [deploy-request]
+
+permissions:
+  contents: read
+
+jobs:
+  handle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read the payload the caller sent
+        run: |
+          echo "event type  : ${{ github.event.action }}"
+          echo "environment : ${{ github.event.client_payload.environment }}"
+          echo "requested by: ${{ github.event.client_payload.requested_by }}"
+
+      - name: Refuse an unknown environment
+        run: |
+          ENV="${{ github.event.client_payload.environment }}"
+          case "$ENV" in
+            staging|production) echo "Deploying to $ENV" ;;
+            *) echo "::error::Unknown environment '$ENV'"; exit 1 ;;
+          esac

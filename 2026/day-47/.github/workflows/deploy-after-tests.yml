@@ -1,0 +1,30 @@
+# Day 47 Task 5 - chained off the Run Tests workflow
+name: Deploy After Tests
+
+on:
+  workflow_run:
+    workflows: ["Run Tests"]     # must match the OTHER workflow's name: exactly
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check how the triggering run finished
+        run: |
+          echo "triggering workflow : ${{ github.event.workflow_run.name }}"
+          echo "conclusion          : ${{ github.event.workflow_run.conclusion }}"
+          echo "head branch         : ${{ github.event.workflow_run.head_branch }}"
+
+      - name: Stop if the tests failed
+        if: github.event.workflow_run.conclusion != 'success'
+        run: |
+          echo "::warning::Tests did not succeed - skipping deploy"
+          exit 1
+
+      - name: Deploy
+        if: github.event.workflow_run.conclusion == 'success'
+        run: echo "Deploying commit ${{ github.event.workflow_run.head_sha }}"

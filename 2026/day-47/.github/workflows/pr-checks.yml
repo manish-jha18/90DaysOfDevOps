@@ -1,0 +1,67 @@
+# Day 47 Task 2 - a real PR gate
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  file-size-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # need history to diff against the base branch
+
+      - name: Fail on any file over 1 MB
+        run: |
+          LIMIT=1048576
+          FAILED=0
+          # only look at files this PR touched, not the whole repo
+          git diff --name-only --diff-filter=d \
+            "origin/${{ github.base_ref }}...HEAD" > changed.txt
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            SIZE=$(stat -c%s "$f")
+            if [ "$SIZE" -gt "$LIMIT" ]; then
+              echo "TOO BIG: $f ($((SIZE / 1024)) KB)"
+              FAILED=1
+            fi
+          done < changed.txt
+          if [ "$FAILED" -eq 1 ]; then
+            echo "::error::One or more files exceed 1 MB"
+            exit 1
+          fi
+          echo "All changed files are under 1 MB"
+
+  branch-name-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce the branch naming convention
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          echo "branch: $BRANCH"
+          case "$BRANCH" in
+            feature/*|fix/*|docs/*)
+              echo "Branch name is valid" ;;
+            *)
+              echo "::error::Branch must start with feature/, fix/ or docs/ (got '$BRANCH')"
+              exit 1 ;;
+          esac
+
+  pr-body-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Warn on an empty description
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [ -z "$BODY" ]; then
+            # ::warning:: shows in the run summary but does NOT fail the job
+            echo "::warning::This PR has no description"
+          else
+            echo "PR description present (${#BODY} characters)"
+          fi

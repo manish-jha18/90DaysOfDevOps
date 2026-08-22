@@ -1,0 +1,32 @@
+# Day 47 Task 1 - the full PR lifecycle
+name: PR Lifecycle
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Which event fired
+        run: |
+          echo "action       : ${{ github.event.action }}"
+          echo "PR title     : ${{ github.event.pull_request.title }}"
+          echo "PR author    : ${{ github.event.pull_request.user.login }}"
+          echo "source branch: ${{ github.head_ref }}"
+          echo "target branch: ${{ github.base_ref }}"
+          echo "merged?      : ${{ github.event.pull_request.merged }}"
+
+      - name: Only when the PR was actually merged
+        # "closed" fires for both merged and abandoned PRs, so the
+        # merged flag is what distinguishes them
+        if: github.event.action == 'closed' && github.event.pull_request.merged == true
+        run: echo "PR #${{ github.event.number }} was MERGED into ${{ github.base_ref }}"
+
+      - name: Closed without merging
+        if: github.event.action == 'closed' && github.event.pull_request.merged == false
+        run: echo "PR #${{ github.event.number }} was closed without merging"
