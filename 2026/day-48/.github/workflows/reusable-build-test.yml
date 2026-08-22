@@ -1,0 +1,76 @@
+# Day 48 - reusable: build and test only. Never deploys.
+name: Reusable Build and Test
+
+on:
+  workflow_call:
+    inputs:
+      go_version_file:
+        required: false
+        type: string
+        default: backend/go.mod
+      node_version:
+        required: false
+        type: string
+        default: '20'
+      run_tests:
+        required: false
+        type: boolean
+        default: true
+    outputs:
+      test_result:
+        description: 'passed or failed'
+        value: ${{ jobs.build-test.outputs.test_result }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    outputs:
+      test_result: ${{ steps.result.outputs.test_result }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ inputs.go_version_file }}
+          cache-dependency-path: backend/go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+
+      - name: Build backend
+        run: go build ./...
+        working-directory: backend
+
+      - name: Run frontend tests
+        if: inputs.run_tests
+        run: npm run test
+        working-directory: frontend
+
+      - name: Run backend tests
+        if: inputs.run_tests
+        run: go test -v ./...
+        working-directory: backend
+
+      - name: Record the result
+        id: result
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "test_result=passed" >> "$GITHUB_OUTPUT"
+          else
+            echo "test_result=failed" >> "$GITHUB_OUTPUT"
+          fi

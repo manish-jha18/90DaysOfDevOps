@@ -1,0 +1,54 @@
+# Day 48 Task 6 - scheduled health check against the published image
+name: Health Check
+
+on:
+  schedule:
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull the latest published image
+        run: docker pull ${{ secrets.DOCKER_USERNAME }}/devboard-backend:latest
+
+      - name: Run it
+        run: |
+          docker run -d --name healthcheck -p 8080:8080 \
+            ${{ secrets.DOCKER_USERNAME }}/devboard-backend:latest
+          sleep 5
+
+      - name: Curl the health endpoint
+        id: probe
+        run: |
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health || echo "000")
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          if [ "$CODE" = "200" ]; then
+            echo "status=PASSED" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=FAILED" >> "$GITHUB_OUTPUT"
+          fi
+          echo "HTTP $CODE"
+
+      - name: Write the run summary
+        if: always()
+        run: |
+          {
+            echo "## Health Check Report"
+            echo "- Image: ${{ secrets.DOCKER_USERNAME }}/devboard-backend:latest"
+            echo "- HTTP status: ${{ steps.probe.outputs.code }}"
+            echo "- Result: ${{ steps.probe.outputs.status }}"
+            echo "- Time: $(date -u)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Clean up
+        if: always()
+        run: docker rm -f healthcheck || true
+
+      - name: Fail the run if the probe failed
+        if: steps.probe.outputs.status != 'PASSED'
+        run: exit 1
