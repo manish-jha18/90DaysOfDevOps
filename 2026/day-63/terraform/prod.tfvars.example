@@ -1,0 +1,12 @@
+environment       = "prod"
+vpc_cidr          = "10.10.0.0/16"
+instance_type     = "t3.small" # the conditional in locals.tf overrides this to t3.medium
+instance_count    = 3
+enable_monitoring = true
+
+allowed_cidrs = ["10.0.0.0/8", "192.168.0.0/16"]
+
+backup = {
+  enabled        = true
+  retention_days = 30
+}
