@@ -1,0 +1,66 @@
+==================================================
+           LOG ANALYSIS SUMMARY REPORT
+==================================================
+
+Date of analysis : 2026-06-29
+Log file         : sample_log.log
+Total lines      : 200
+Total errors     : 47  (ERROR or Failed)
+Critical events  : 40
+
+--------------------------------------------------
+TOP 5 ERROR MESSAGES
+--------------------------------------------------
+     11 Out of memory
+     10 Failed to connect
+      9 Segmentation fault
+      9 Invalid input
+      8 Disk full
+
+--------------------------------------------------
+CRITICAL EVENTS
+--------------------------------------------------
+Line 8: 2026-06-29 08:19:48 [CRITICAL] Database connection lost - 28339
+Line 25: 2026-06-29 08:54:17 [CRITICAL] Disk space below threshold - 23285
+Line 27: 2026-06-29 08:58:20 [CRITICAL] Service unresponsive - 7979
+Line 32: 2026-06-29 09:08:08 [CRITICAL] Service unresponsive - 3801
+Line 33: 2026-06-29 09:11:53 [CRITICAL] Database connection lost - 14984
+Line 34: 2026-06-29 09:13:27 [CRITICAL] Memory limit exceeded - 11425
+Line 35: 2026-06-29 09:15:45 [CRITICAL] Memory limit exceeded - 15362
+Line 37: 2026-06-29 09:20:38 [CRITICAL] Database connection lost - 23541
+Line 48: 2026-06-29 09:50:13 [CRITICAL] Disk space below threshold - 13495
+Line 53: 2026-06-29 10:02:39 [CRITICAL] Database connection lost - 14664
+Line 57: 2026-06-29 10:10:25 [CRITICAL] Service unresponsive - 15714
+Line 58: 2026-06-29 10:13:46 [CRITICAL] Database connection lost - 11632
+Line 63: 2026-06-29 10:29:14 [CRITICAL] Service unresponsive - 23264
+Line 70: 2026-06-29 10:45:13 [CRITICAL] Service unresponsive - 26185
+Line 71: 2026-06-29 10:47:13 [CRITICAL] Database connection lost - 728
+Line 80: 2026-06-29 11:11:55 [CRITICAL] Memory limit exceeded - 27964
+Line 83: 2026-06-29 11:16:35 [CRITICAL] Database connection lost - 13342
+Line 86: 2026-06-29 11:23:21 [CRITICAL] Service unresponsive - 28424
+Line 108: 2026-06-29 12:16:51 [CRITICAL] Memory limit exceeded - 1828
+Line 123: 2026-06-29 12:53:46 [CRITICAL] Database connection lost - 25140
+Line 128: 2026-06-29 13:08:59 [CRITICAL] Database connection lost - 32110
+Line 132: 2026-06-29 13:15:30 [CRITICAL] Service unresponsive - 15837
+Line 142: 2026-06-29 13:38:26 [CRITICAL] Database connection lost - 28747
+Line 146: 2026-06-29 13:45:45 [CRITICAL] Disk space below threshold - 29792
+Line 147: 2026-06-29 13:48:42 [CRITICAL] Memory limit exceeded - 25526
+Line 151: 2026-06-29 13:58:03 [CRITICAL] Database connection lost - 24178
+Line 153: 2026-06-29 14:02:53 [CRITICAL] Memory limit exceeded - 17861
+Line 155: 2026-06-29 14:07:49 [CRITICAL] Database connection lost - 11667
+Line 156: 2026-06-29 14:10:03 [CRITICAL] Memory limit exceeded - 6527
+Line 157: 2026-06-29 14:14:39 [CRITICAL] Memory limit exceeded - 7406
+Line 159: 2026-06-29 14:17:09 [CRITICAL] Disk space below threshold - 11399
+Line 160: 2026-06-29 14:20:57 [CRITICAL] Database connection lost - 9390
+Line 163: 2026-06-29 14:25:04 [CRITICAL] Service unresponsive - 15792
+Line 167: 2026-06-29 14:35:34 [CRITICAL] Database connection lost - 3236
+Line 170: 2026-06-29 14:44:24 [CRITICAL] Memory limit exceeded - 5479
+Line 171: 2026-06-29 14:45:46 [CRITICAL] Disk space below threshold - 2811
+Line 173: 2026-06-29 14:50:45 [CRITICAL] Database connection lost - 30560
+Line 179: 2026-06-29 15:05:39 [CRITICAL] Service unresponsive - 5234
+Line 181: 2026-06-29 15:11:55 [CRITICAL] Memory limit exceeded - 23725
+Line 195: 2026-06-29 15:44:26 [CRITICAL] Memory limit exceeded - 16306
+
+==================================================
+End of report
+==================================================
