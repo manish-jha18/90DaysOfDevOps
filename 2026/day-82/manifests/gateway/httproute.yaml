@@ -1,0 +1,75 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: devboard-route
+  namespace: devboard
+spec:
+  parentRefs:
+    - name: devboard-gateway
+  hostnames:
+    - devboard.example.com
+  rules:
+    # ---------------------------------------------------------------
+    # Exact, NOT PathPrefix.
+    #
+    # A PathPrefix on /api/ai once exposed /api/ai/metrics to the
+    # internet, because the prefix matched every path under it including
+    # ones nobody meant to publish. Listing the endpoints explicitly means
+    # a new internal route is private by default.
+    # ---------------------------------------------------------------
+    - matches:
+        - path:
+            type: Exact
+            value: /api/ai/summarise
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /summarise
+      # LLM generation is slow. The Envoy default of 15s would cut it off.
+      timeouts:
+        request: "300s"
+        backendRequest: "300s"
+      backendRefs:
+        - name: ai-service
+          port: 3005
+
+    - matches:
+        - path:
+            type: Exact
+            value: /api/ai/health
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /health
+      backendRefs:
+        - name: ai-service
+          port: 3005
+
+    # the Go API - prefix is fine here, it is meant to be public
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: backend
+          port: 8080
+
+    # catch-all LAST. Rule order is significant only for equal specificity,
+    # but keeping the fallback last is how a reader expects it to work.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: devboard-frontend-service
+          port: 8080

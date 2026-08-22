@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: devboard-tls
+  namespace: devboard
+spec:
+  # must match the Gateway listener's certificateRefs name
+  secretName: devboard-tls
+  dnsNames:
+    - devboard.example.com
+  issuerRef:
+    name: letsencrypt-staging
+    kind: ClusterIssuer
+  # renew when a third of the lifetime remains. LE certs last 90 days,
+  # so this renews at day 60 and leaves 30 days to notice a failure.
+  duration: 2160h
+  renewBefore: 720h

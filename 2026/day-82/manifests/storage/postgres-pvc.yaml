@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: devboard
+spec:
+  storageClassName: gp3
+  # EBS is a block device - RWO only. RWX would need EFS.
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 20Gi

@@ -1,0 +1,20 @@
+# EKS ships gp2 but marks NOTHING as default, so a PVC without an explicit
+# storageClassName hangs Pending forever with an unhelpful event.
+# This creates gp3 and makes it the default.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+# WaitForFirstConsumer: schedule the pod first, THEN create the volume in
+# that node's AZ. Immediate binding puts the EBS volume in an arbitrary AZ
+# and the pod can never be scheduled to reach it (day 55).
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  type: gp3
+  encrypted: "true"
+  fsType: ext4

@@ -1,0 +1,43 @@
+# Staging FIRST. Let's Encrypt production allows only 5 authorisation
+# FAILURES per hostname per hour - get the DNS or the solver wrong a few
+# times and you are locked out for the rest of the hour.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: manishkumar181999@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - http01:
+          # the solver creates a temporary HTTPRoute in the CERTIFICATE's
+          # namespace, so the Certificate must live where the Gateway
+          # accepts routes from - here, devboard
+          gatewayHTTPRoute:
+            parentRefs:
+              - kind: Gateway
+                name: devboard-gateway
+                namespace: devboard
+                # deliberately no sectionName: attaches to :80 AND :443,
+                # so renewals work whichever listener is reachable
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: manishkumar181999@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+      - http01:
+          gatewayHTTPRoute:
+            parentRefs:
+              - kind: Gateway
+                name: devboard-gateway
+                namespace: devboard

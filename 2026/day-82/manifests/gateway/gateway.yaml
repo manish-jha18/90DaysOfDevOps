@@ -1,0 +1,35 @@
+# The Gateway is the LISTENER. In Ingress this was implicit and controlled
+# by the controller's own Service; here it is an explicit, ownable object.
+# The platform team owns this; app teams own the HTTPRoutes that attach to it.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: devboard-gateway
+  namespace: devboard
+spec:
+  gatewayClassName: envoy
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      # Same = only routes in THIS namespace may attach. "All" or a
+      # selector opens it up - this is the cross-namespace control
+      # Ingress never had.
+      allowedRoutes:
+        namespaces:
+          from: Same
+
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: devboard.example.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            group: ""
+            # created by cert-manager from the Certificate below
+            name: devboard-tls
+      allowedRoutes:
+        namespaces:
+          from: Same
