@@ -1,0 +1,30 @@
+# Day 44 Task 6 - what setup-node's cache does for you, done by hand
+name: Manual Cache
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Restore the npm cache
+        uses: actions/cache@v4
+        with:
+          # ~/.npm is the download cache, NOT node_modules
+          path: ~/.npm
+          # the key includes a hash of the lockfile, so changing a dependency
+          # produces a new key and a fresh cache entry
+          key: ${{ runner.os }}-npm-${{ hashFiles('frontend/package-lock.json') }}
+          # if the exact key misses, fall back to the newest partial match
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install
+        run: npm ci --legacy-peer-deps
+        working-directory: frontend
