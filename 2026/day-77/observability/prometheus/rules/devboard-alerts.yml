@@ -1,0 +1,74 @@
+# Alert rules. Every alert has a runbook annotation - an alert that fires
+# at 3am without telling you what to do is close to useless.
+groups:
+  - name: host
+    rules:
+      - alert: HostHighCPU
+        expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        # must stay true for 10m. Without "for", a single scrape spike pages you.
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU above 85% for 10 minutes on {{ $labels.instance }}"
+          description: "Currently {{ $value | printf \"%.1f\" }}%"
+          runbook: "ssh in and run: top -o %CPU, then ps aux --sort=-%cpu | head"
+
+      - alert: HostLowMemory
+        expr: 100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Less than 10% memory available on {{ $labels.instance }}"
+          runbook: "free -h, then dmesg -T | grep -i oom to see if anything was killed"
+
+      - alert: HostDiskFillingUp
+        # predict_linear extrapolates the current trend forwards. This fires
+        # when the disk will be full within 4 hours, not when it already is.
+        expr: |
+          predict_linear(node_filesystem_avail_bytes{mountpoint="/rootfs"}[6h], 4 * 3600) < 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Root filesystem will be full within 4 hours on {{ $labels.instance }}"
+          runbook: "du -sh /var/log/* and docker system df - journald and images are the usual culprits"
+
+  - name: containers
+    rules:
+      - alert: ContainerRestarting
+        expr: |
+          increase(container_start_time_seconds{name!=""}[15m]) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} has restarted more than twice in 15 minutes"
+          runbook: "docker logs {{ $labels.name }} --tail 100 and check the exit code - 137 is OOM"
+
+      - alert: ContainerMemoryNearLimit
+        expr: |
+          container_memory_working_set_bytes{name!=""}
+            / container_spec_memory_limit_bytes{name!=""} > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.name }} is at 90% of its memory limit"
+          description: "It will be OOMKilled with exit 137 if it keeps climbing"
+          runbook: "docker stats {{ $labels.name }}, then raise the limit or find the leak"
+
+  - name: monitoring
+    rules:
+      # the alert about the alerting. If prometheus stops scraping something,
+      # every other alert on that target goes quiet - which looks like health.
+      - alert: TargetDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus cannot scrape {{ $labels.job }} at {{ $labels.instance }}"
+          description: "Every other alert for this target is now blind"
+          runbook: "curl the target's /metrics directly, then check the container is running"

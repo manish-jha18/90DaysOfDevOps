@@ -1,0 +1,84 @@
+# The collector is three stages: receivers -> processors -> exporters,
+# wired together into pipelines at the bottom.
+receivers:
+  # OTLP is the OpenTelemetry native protocol. Apps send here.
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # ALWAYS include this. Without it a traffic spike makes the collector
+  # itself the thing that OOMs, and you lose telemetry exactly when you
+  # need it most.
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 400
+    spike_limit_mib: 100
+
+  # send in batches rather than one span at a time. Large win on CPU
+  # and on the receiving end.
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+
+  # attach constant labels so several environments can share one backend
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: local
+        action: upsert
+
+exporters:
+  # prometheus SCRAPES this endpoint - the collector does not push
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    # turn resource attributes into prometheus labels
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  # traces to tempo over OTLP
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  # logs to loki
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+
+  # prints everything to the collector's own stdout. Invaluable while
+  # wiring things up, far too noisy to leave on.
+  debug:
+    verbosity: detailed
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+
+  pipelines:
+    traces:
+      receivers: [otlp]
+      # memory_limiter FIRST, batch LAST - the order in this list is the
+      # order data flows through
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/tempo, debug]
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheus]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp/loki]
+
+  telemetry:
+    logs:
+      level: info
