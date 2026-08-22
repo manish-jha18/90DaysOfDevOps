@@ -1,0 +1,5 @@
+# the usual real-world pattern: ENTRYPOINT is the command,
+# CMD supplies default arguments that the user can override
+FROM alpine:3.20
+ENTRYPOINT ["ping", "-c", "3"]
+CMD ["localhost"]

@@ -1,0 +1,3 @@
+# ENTRYPOINT is FIXED - anything after the image name is appended as arguments
+FROM alpine:3.20
+ENTRYPOINT ["echo"]

@@ -1,0 +1,10 @@
+# Day 31 Task 5 - keep these out of the build context
+node_modules
+.git
+.gitignore
+*.md
+.env
+*.log
+.DS_Store
+Dockerfile
+.dockerignore
