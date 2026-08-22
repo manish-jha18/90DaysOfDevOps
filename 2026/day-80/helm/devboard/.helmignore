@@ -1,0 +1,6 @@
+.git/
+.gitignore
+*.md
+.DS_Store
+*.tgz
+values-*.yaml

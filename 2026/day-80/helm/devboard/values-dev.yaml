@@ -1,0 +1,38 @@
+# Smallest, cheapest, most permissive. Used with:
+#   helm upgrade --install devboard ./devboard -n devboard-dev -f values-dev.yaml
+postgres:
+  storage:
+    size: 1Gi
+  resources:
+    requests: { cpu: 25m, memory: 64Mi }
+    limits: { cpu: 250m, memory: 128Mi }
+
+backend:
+  replicas: 1
+  image:
+    tag: latest
+    # dev tracks latest, so always re-pull
+    pullPolicy: Always
+  resources:
+    requests: { cpu: 10m, memory: 64Mi }
+    limits: { cpu: 250m, memory: 128Mi }
+
+frontend:
+  replicas: 1
+  image:
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: NodePort
+    nodePort: 30080
+  hpa:
+    enabled: false
+
+observability:
+  enabled: false
+
+hooks:
+  dbCheck:
+    enabled: true
+  smokeTest:
+    enabled: true

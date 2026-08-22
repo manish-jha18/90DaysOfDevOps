@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "devboard.fullname" . }}-backend
+  labels:
+    {{- include "devboard.labels" . | nindent 4 }}
+    component: backend
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      {{- include "devboard.selectorLabels" . | nindent 6 }}
+      component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "devboard.labels" . | nindent 8 }}
+        component: backend
+      annotations:
+        # hash of the rendered config and secret. Changing either changes the
+        # pod template, which forces a rollout - the day 54 problem where a
+        # configmap change never reaches running pods.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      # the backend cannot start before postgres accepts connections. An init
+      # container blocks the pod until it can, rather than crash-looping the
+      # app container while postgres initialises.
+      initContainers:
+        - name: wait-for-postgres
+          image: {{ .Values.postgres.image | quote }}
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h {{ include "devboard.fullname" . }} -p {{ .Values.postgres.port }} -U {{ .Values.postgres.user }}; do
+                echo "waiting for postgres..."
+                sleep 2
+              done
+      containers:
+        - name: backend
+          # .Chart.AppVersion as the fallback, so a chart bump alone can move
+          # the image tag when values do not pin one
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+              name: http
+          env:
+            - name: PORT
+              value: {{ .Values.backend.port | quote }}
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "devboard.fullname" . }}-secrets
+                  key: POSTGRES_URL
+            {{- if .Values.observability.enabled }}
+            - name: OTEL_SERVICE_NAME
+              value: devboard-backend
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.observability.otlpEndpoint | quote }}
+            - name: OTEL_EXPORTER_OTLP_INSECURE
+              value: "true"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment={{ .Release.Namespace }},service.namespace={{ .Release.Namespace }}"
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "devboard.fullname" . }}-backend
+  labels:
+    {{- include "devboard.labels" . | nindent 4 }}
+    component: backend
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "devboard.selectorLabels" . | nindent 4 }}
+    component: backend
+  ports:
+    - port: {{ .Values.backend.port }}
+      targetPort: http
+      name: http

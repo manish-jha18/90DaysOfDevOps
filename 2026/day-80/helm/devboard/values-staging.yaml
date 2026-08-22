@@ -1,0 +1,46 @@
+# Production-shaped but smaller. This is where a release is proven.
+postgres:
+  storage:
+    size: 5Gi
+    storageClassName: gp3
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+backend:
+  replicas: 2
+  image:
+    # staging pins a real SHA - the same artifact that will go to prod
+    tag: sha-8a3f91c
+    pullPolicy: IfNotPresent
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 256Mi }
+
+frontend:
+  image:
+    tag: sha-8a3f91c
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+
+ingress:
+  enabled: true
+  className: nginx
+  host: staging.devboard.example.com
+  tls:
+    enabled: true
+
+observability:
+  enabled: true
+
+hooks:
+  dbCheck:
+    enabled: true
+  smokeTest:
+    enabled: true

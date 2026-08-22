@@ -1,0 +1,82 @@
+# Bigger, pinned, restricted. Note there is NO password here - see the
+# comment at the bottom.
+postgres:
+  storage:
+    size: 50Gi
+    storageClassName: gp3
+  resources:
+    requests: { cpu: 500m, memory: 2Gi }
+    limits: { cpu: 2000m, memory: 4Gi }
+
+backend:
+  replicas: 3
+  image:
+    tag: sha-8a3f91c
+    # never Always in prod - a pull failure should not take down a
+    # restarting pod that already has the image
+    pullPolicy: IfNotPresent
+  resources:
+    requests: { cpu: 250m, memory: 256Mi }
+    limits: { cpu: 1000m, memory: 512Mi }
+
+frontend:
+  image:
+    tag: sha-8a3f91c
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 256Mi }
+
+ingress:
+  enabled: true
+  className: nginx
+  host: devboard.example.com
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    enabled: true
+
+observability:
+  enabled: true
+
+# prod starts slower under load - loosen the probes so a busy pod is not
+# killed while it is merely slow
+probes:
+  liveness:
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    failureThreshold: 5
+  readiness:
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 3
+
+# keep the app tier off the same node as everything else
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: devboard
+          topologyKey: kubernetes.io/hostname
+
+hooks:
+  dbCheck:
+    enabled: true
+  smokeTest:
+    enabled: true
+
+# NO postgres.password here on purpose. A production password in a
+# committed values file is the day 27 leak. Supply it at deploy time:
+#   --set postgres.password="$DB_PASSWORD"
+# or better, replace the Secret template with an ExternalSecret pointing
+# at AWS Secrets Manager.

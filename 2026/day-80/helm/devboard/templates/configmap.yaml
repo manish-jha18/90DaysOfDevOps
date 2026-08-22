@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "devboard.fullname" . }}-config
+  labels:
+    {{- include "devboard.labels" . | nindent 4 }}
+data:
+  POSTGRES_USER: {{ .Values.postgres.user | quote }}
+  POSTGRES_DB: {{ .Values.postgres.database | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "devboard.fullname" . }}-initdb
+  labels:
+    {{- include "devboard.labels" . | nindent 4 }}
+data:
+  # .Files.Glob reads real files from files/ into the chart. Keeping SQL
+  # in .sql files rather than inline YAML means editors syntax-highlight it
+  # and it can be tested outside helm.
+  {{- (.Files.Glob "files/*.sql").AsConfig | nindent 2 }}

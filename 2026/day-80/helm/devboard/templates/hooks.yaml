@@ -1,0 +1,90 @@
+{{- if .Values.hooks.dbCheck.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "devboard.fullname" . }}-db-check
+  labels:
+    {{- include "devboard.labels" . | nindent 4 }}
+  annotations:
+    # pre-install AND pre-upgrade: runs before any workload is created or
+    # updated. If it fails, helm ABORTS - nothing is deployed against a
+    # database that is not ready.
+    "helm.sh/hook": pre-install,pre-upgrade
+    # lower weight runs first. Useful once there are several hooks.
+    "helm.sh/hook-weight": "-5"
+    # keep a FAILED job so its logs can be read; delete it on success and
+    # before re-running, or the second upgrade fails on an existing Job
+    # (a Job's spec is immutable).
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  # do not retry forever - fail the release rather than hang
+  activeDeadlineSeconds: {{ .Values.hooks.dbCheck.timeoutSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "devboard.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: db-check
+          image: {{ .Values.postgres.image | quote }}
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "devboard.fullname" . }}-secrets
+                  key: POSTGRES_PASSWORD
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              echo "waiting for postgres at {{ include "devboard.fullname" . }}:{{ .Values.postgres.port }}"
+              until pg_isready -h {{ include "devboard.fullname" . }} \
+                               -p {{ .Values.postgres.port }} \
+                               -U {{ .Values.postgres.user }}; do
+                sleep 2
+              done
+              echo "postgres is accepting connections; checking the schema"
+              psql -h {{ include "devboard.fullname" . }} \
+                   -U {{ .Values.postgres.user }} \
+                   -d {{ .Values.postgres.database }} \
+                   -c "SELECT 1" > /dev/null
+              echo "database check passed"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+{{- end }}
+---
+{{- if .Values.hooks.smokeTest.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "devboard.fullname" . }}-smoke-test
+  labels:
+    {{- include "devboard.labels" . | nindent 4 }}
+  annotations:
+    # the "test" hook does NOT run on install. It runs only on
+    # `helm test <release>`, which makes it safe to keep in the chart.
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  restartPolicy: Never
+  containers:
+    - name: smoke-test
+      image: curlimages/curl:8.10.1
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          echo "backend health"
+          curl -sf http://{{ include "devboard.fullname" . }}-backend:{{ .Values.backend.port }}/health
+          echo
+          echo "frontend responds"
+          curl -sf -o /dev/null -w "HTTP %{http_code}\n" \
+            http://{{ include "devboard.fullname" . }}-frontend:{{ .Values.frontend.servicePort }}/
+          echo "smoke test passed"
+{{- end }}
