@@ -1,0 +1,16 @@
+# clusterIP: None makes this HEADLESS - no virtual IP, no load balancing.
+# A DNS lookup returns the pod IPs directly, and each pod also gets its own
+# stable name: postgres-0.postgres.devboard-dev.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: devboard-dev
+spec:
+  clusterIP: None
+  selector:
+    app: devboard-postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
