@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devboard-config
+  namespace: devboard-dev
+data:
+  # simple key/value - consumed with configMapKeyRef or envFrom
+  POSTGRES_USER: devboard
+  LOG_LEVEL: info
+  BACKEND_PORT: "8080"        # quoted - YAML would make this a number
+
+  # a whole file - consumed by mounting the configmap as a volume
+  app.properties: |
+    feature.kanban=true
+    feature.search=true
+    page.size=25
