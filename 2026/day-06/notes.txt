@@ -1,0 +1,8 @@
+Line 1 - starting my Day 06 file practice
+Line 2 - appended with >>
+Line 3 - written with tee -a
+Line 4 - a single > overwrites the whole file
+Line 5 - a double >> adds to the end
+Line 6 - tee writes to the file and prints at the same time
+Line 7 - head reads the top, tail reads the bottom
+Line 8 - end of practice
