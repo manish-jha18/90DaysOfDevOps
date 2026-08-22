@@ -1,0 +1,15 @@
+# On a cloud provider this provisions a real external load balancer.
+# On kind it stays <pending> forever unless something like MetalLB is installed.
+apiVersion: v1
+kind: Service
+metadata:
+  name: devboard-frontend-lb
+  namespace: devboard-dev
+spec:
+  type: LoadBalancer
+  selector:
+    app: devboard-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 4173

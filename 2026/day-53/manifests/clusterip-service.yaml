@@ -1,0 +1,16 @@
+# Internal only. The default type. Other pods reach it as
+# "devboard-frontend-clusterip" or across namespaces as
+# devboard-frontend-clusterip.devboard-dev.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: devboard-frontend-clusterip
+  namespace: devboard-dev
+spec:
+  type: ClusterIP
+  selector:
+    app: devboard-frontend    # matches POD labels, not the deployment name
+  ports:
+    - protocol: TCP
+      port: 80                # the port the service listens on
+      targetPort: 4173        # the port the container listens on
