@@ -1,0 +1,27 @@
+# App 3 - references a ConfigMap that does not exist. kubelet cannot build the
+# container env, so the pod never starts: CreateContainerConfigError.
+#
+# This one is deliberately NOT auto-fixable. The agent can name the problem
+# but it has no way to know what belongs inside app-config, so the correct
+# behaviour is to skip and escalate.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-app
+  template:
+    metadata:
+      labels:
+        app: config-app
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          envFrom:
+            - configMapRef:
+                name: app-config

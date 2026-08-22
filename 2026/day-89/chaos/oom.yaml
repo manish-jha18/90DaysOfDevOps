@@ -1,0 +1,25 @@
+# App 2 - memory limit far below what the process needs. stress allocates
+# 100M against a 10Mi limit, so the kernel OOM-kills it on startup, every
+# time. Ends up CrashLoopBackOff with Last State: Terminated, OOMKilled.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-app
+  template:
+    metadata:
+      labels:
+        app: memory-app
+    spec:
+      containers:
+        - name: stress
+          image: polinux/stress
+          command: ["stress", "--vm", "1", "--vm-bytes", "100M"]
+          resources:
+            limits:
+              memory: "10Mi"
