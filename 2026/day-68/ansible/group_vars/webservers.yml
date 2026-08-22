@@ -1,0 +1,5 @@
+---
+# More specific than group_vars/devboard.yml, so these win on a conflict.
+nginx_worker_processes: auto
+nginx_worker_connections: 1024
+app_port: 8080

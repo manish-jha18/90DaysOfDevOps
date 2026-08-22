@@ -1,0 +1,28 @@
+---
+# The same inventory in YAML. Easier to read once there are nested groups,
+# and it is the format ansible itself prefers now.
+all:
+  children:
+    devboard:
+      children:
+        webservers:
+          hosts:
+            web1:
+              ansible_host: 44.238.114.92
+            web2:
+              ansible_host: 35.164.201.77
+          vars:
+            http_port: 80
+            app_env: production
+
+        dbservers:
+          hosts:
+            db1:
+              ansible_host: 52.10.44.187
+          vars:
+            postgres_port: 5432
+
+      vars:
+        ansible_user: ubuntu
+        ansible_ssh_private_key_file: ~/.ssh/devboard-key.pem
+        ansible_python_interpreter: /usr/bin/python3

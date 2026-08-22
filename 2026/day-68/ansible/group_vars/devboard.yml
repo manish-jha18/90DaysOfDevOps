@@ -1,0 +1,12 @@
+---
+# Applies to every host in the devboard group and its children.
+# group_vars/<groupname>.yml is picked up automatically - no include needed.
+
+timezone: Asia/Kolkata
+
+common_packages:
+  - curl
+  - git
+  - htop
+  - jq
+  - unzip

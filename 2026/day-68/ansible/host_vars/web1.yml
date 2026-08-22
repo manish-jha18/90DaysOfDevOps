@@ -1,0 +1,4 @@
+---
+# host_vars beats group_vars. web1 is the smaller box.
+nginx_worker_connections: 512
+server_role: primary
