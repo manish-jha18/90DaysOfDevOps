@@ -1,0 +1,59 @@
+# All three probe types on the DevBoard backend.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devboard-backend
+  namespace: devboard-dev
+  labels:
+    app: devboard-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: devboard-backend
+  template:
+    metadata:
+      labels:
+        app: devboard-backend
+    spec:
+      containers:
+        - name: devboard-backend
+          image: manishjha18/devboard-backend:latest
+          ports:
+            - containerPort: 8080
+
+          # NOTE: resources belongs to the CONTAINER, not the pod spec.
+          # Indenting it one level out is silently wrong - see the notes.
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+          # startup: gives a slow starter time before the others begin.
+          # 30 x 2s = up to 60s to come up. Liveness stays quiet until this passes.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 2
+
+          # liveness: is it alive? FAILING RESTARTS THE CONTAINER.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # readiness: is it ready for traffic? Failing only removes it
+          # from the Service endpoints - the container keeps running.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 5
+            failureThreshold: 2

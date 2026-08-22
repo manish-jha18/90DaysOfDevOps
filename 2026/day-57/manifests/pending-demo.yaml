@@ -1,0 +1,14 @@
+# Requests more CPU than any node has, so it never schedules.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pending-demo
+  namespace: devboard-dev
+spec:
+  containers:
+    - name: greedy
+      image: nginx:1.25-alpine
+      resources:
+        requests:
+          cpu: "50"           # 50 whole cores
+          memory: 1Gi
