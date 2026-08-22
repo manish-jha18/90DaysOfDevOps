@@ -1,0 +1,27 @@
+# The App of Apps. This single Application's source is a DIRECTORY of other
+# Application manifests, so applying one object bootstraps the whole platform.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/manish-jha18/devboard.git
+    targetRevision: mega-project
+    path: gitops/argocd/platform
+
+  destination:
+    server: https://kubernetes.default.svc
+    # the CHILD Application objects land in argocd; each child deploys
+    # to its own namespace
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -1,0 +1,52 @@
+# ArgoCD notifications. The controller ships with the chart; this ConfigMap
+# is the whole configuration.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+data:
+  # the token comes from a Secret, never inline
+  service.slack: |
+    token: $slack-token
+
+  template.app-sync-failed: |
+    message: |
+      :x: *{{.app.metadata.name}}* sync FAILED
+      Revision: {{.app.status.operationState.syncResult.revision}}
+      Error: {{.app.status.operationState.message}}
+      <{{.context.argocdUrl}}/applications/{{.app.metadata.name}}|Open in ArgoCD>
+
+  template.app-health-degraded: |
+    message: |
+      :warning: *{{.app.metadata.name}}* is DEGRADED
+      <{{.context.argocdUrl}}/applications/{{.app.metadata.name}}|Open in ArgoCD>
+
+  template.app-sync-succeeded: |
+    message: |
+      :white_check_mark: *{{.app.metadata.name}}* synced to `{{.app.status.sync.revision}}`
+
+  # a trigger is a condition plus a template. oncePer stops a persistent
+  # failure re-notifying on every reconcile loop.
+  trigger.on-sync-failed: |
+    - when: app.status.operationState.phase in ['Error', 'Failed']
+      send: [app-sync-failed]
+      oncePer: app.status.operationState.syncResult.revision
+
+  trigger.on-health-degraded: |
+    - when: app.status.health.status == 'Degraded'
+      send: [app-health-degraded]
+      oncePer: app.status.sync.revision
+
+  trigger.on-sync-succeeded: |
+    - when: app.status.operationState.phase == 'Succeeded'
+      send: [app-sync-succeeded]
+      oncePer: app.status.sync.revision
+
+  # subscribe every application by default, rather than annotating each one
+  subscriptions: |
+    - recipients:
+        - slack:devops-alerts
+      triggers:
+        - on-sync-failed
+        - on-health-degraded

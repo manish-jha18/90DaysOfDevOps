@@ -1,0 +1,47 @@
+# An AppProject is ArgoCD's tenancy boundary. The "default" project allows
+# everything from anywhere to anywhere, which is fine for one team and wrong
+# the moment there are two.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: devboard
+  namespace: argocd
+spec:
+  description: DevBoard application team
+
+  # which git repos this project may deploy FROM
+  sourceRepos:
+    - https://github.com/manish-jha18/devboard.git
+
+  # which clusters and namespaces it may deploy TO
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: devboard
+    - server: https://kubernetes.default.svc
+      namespace: devboard-*
+
+  # cluster-scoped resources this project may create. Empty would mean none.
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+
+  # explicitly DENY the dangerous ones, even if something else allows them
+  clusterResourceBlacklist:
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  roles:
+    - name: developer
+      description: Can view and sync, cannot delete
+      policies:
+        - p, proj:devboard:developer, applications, get, devboard/*, allow
+        - p, proj:devboard:developer, applications, sync, devboard/*, allow
+        - p, proj:devboard:developer, applications, delete, devboard/*, deny
+      groups:
+        - devboard-developers

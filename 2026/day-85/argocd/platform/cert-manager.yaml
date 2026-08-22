@@ -1,0 +1,57 @@
+# Wave 0, alongside External Secrets: both are operators with CRDs.
+#
+# cert-manager checks for the Gateway API CRDs only at STARTUP. Boot it
+# before Envoy Gateway and every Certificate sits Pending with no useful
+# event. The fix is: kubectl rollout restart deploy cert-manager -n cert-manager
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+
+  source:
+    repoURL: https://charts.jetstack.io
+    chart: cert-manager
+    targetRevision: "v1.16.1"
+    helm:
+      valuesObject:
+        crds:
+          enabled: true
+          # keep them if the app is deleted - removing a CRD removes
+          # every Certificate in the cluster
+          keep: true
+
+        config:
+          apiVersion: controller.config.cert-manager.io/v1alpha1
+          kind: ControllerConfiguration
+          gatewayAPI:
+            enabled: true
+
+        # Public resolvers for the HTTP-01 self-check. CoreDNS caches the
+        # pre-challenge answer and the self-check then fails against a
+        # record that is already correct externally.
+        extraArgs:
+          - --acme-http01-solver-nameservers=8.8.8.8:53,1.1.1.1:53
+
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # cert-manager's CRDs exceed the 262144-byte annotation limit that
+      # client-side apply uses for last-applied-configuration
+      - ServerSideApply=true

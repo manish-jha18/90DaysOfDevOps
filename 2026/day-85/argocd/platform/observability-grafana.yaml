@@ -1,0 +1,45 @@
+# Wave 3 - needs prometheus (wave 1) and the collector (wave 2) to exist,
+# because its datasources point at them.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: observability-grafana
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: default
+
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: grafana
+    targetRevision: "8.5.1"
+    helm:
+      valuesObject:
+        # read from a secret created out of band - never in git
+        admin:
+          existingSecret: grafana-admin
+        datasources:
+          datasources.yaml:
+            apiVersion: 1
+            datasources:
+              - name: Prometheus
+                type: prometheus
+                uid: prometheus
+                url: http://observability-prometheus-kube-prom-prometheus:9090
+                isDefault: true
+        resources:
+          requests:
+            cpu: 25m
+            memory: 128Mi
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

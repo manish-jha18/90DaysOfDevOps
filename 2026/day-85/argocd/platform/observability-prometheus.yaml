@@ -1,0 +1,46 @@
+# Wave 1 - a storage backend. Grafana in wave 3 needs it to exist first.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: observability-prometheus
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: "65.1.1"
+    helm:
+      valuesObject:
+        # grafana comes from its own Application in wave 3
+        grafana:
+          enabled: false
+        prometheus:
+          prometheusSpec:
+            retention: 7d
+            # scrape ServiceMonitors from EVERY namespace, not just ones
+            # carrying the release label
+            serviceMonitorSelectorNilUsesHelmValues: false
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  storageClassName: gp3
+                  accessModes: [ReadWriteOnce]
+                  resources:
+                    requests:
+                      storage: 20Gi
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
