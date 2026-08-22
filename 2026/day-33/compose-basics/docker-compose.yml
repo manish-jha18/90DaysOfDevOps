@@ -1,0 +1,7 @@
+# Day 33 Task 2 - the smallest useful compose file
+services:
+  web:
+    image: nginx:1.25-alpine
+    container_name: compose-nginx
+    ports:
+      - "8080:80"
