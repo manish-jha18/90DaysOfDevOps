@@ -1,0 +1,13 @@
+# Task 1 - the naive single-stage build.
+# The whole Go toolchain ends up in the final image even though
+# only the compiled binary is needed at runtime.
+FROM golang:1.22
+
+WORKDIR /src
+COPY go.mod .
+COPY main.go .
+
+RUN go build -o /src/hello main.go
+
+EXPOSE 8080
+CMD ["/src/hello"]

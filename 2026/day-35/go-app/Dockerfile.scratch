@@ -1,0 +1,13 @@
+# Task 5 - taken as far as it goes: scratch has literally nothing in it.
+FROM golang:1.22-alpine AS builder
+WORKDIR /src
+COPY go.mod .
+COPY main.go .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /src/hello main.go
+
+FROM scratch
+# scratch has no adduser, so the user has to be given as a numeric UID
+COPY --from=builder /src/hello /hello
+USER 10001
+EXPOSE 8080
+ENTRYPOINT ["/hello"]
