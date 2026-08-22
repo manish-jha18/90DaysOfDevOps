@@ -1,0 +1,12 @@
+{{ .Chart.Name }} {{ .Chart.AppVersion }} installed as release "{{ .Release.Name }}".
+
+Get the application URL:
+{{- if eq .Values.service.type "NodePort" }}
+  export NODE_PORT=$(kubectl get svc {{ include "devboard.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}")
+  echo "http://localhost:$NODE_PORT"
+{{- else }}
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "devboard.fullname" . }} 8080:{{ .Values.service.port }}
+  echo "http://localhost:8080"
+{{- end }}
+
+Replicas: {{ if .Values.autoscaling.enabled }}managed by HPA ({{ .Values.autoscaling.minReplicas }}-{{ .Values.autoscaling.maxReplicas }}){{ else }}{{ .Values.replicaCount }}{{ end }}

@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "devboard.fullname" . }}
+  labels:
+    {{- include "devboard.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  # omitted entirely when an HPA owns the replica count (day 58 lesson)
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "devboard.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        # hash of the configmap - changes the pod template whenever the
+        # config changes, which forces a rollout (day 54 lesson)
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "devboard.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "devboard.fullname" . }}-config
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

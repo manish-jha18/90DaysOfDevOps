@@ -1,0 +1,30 @@
+# Default values. Override with --set or -f my-values.yaml
+replicaCount: 2
+
+image:
+  repository: manishjha18/devboard-frontend
+  # empty means "use Chart.appVersion" - see the template
+  tag: ""
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 4173
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 50
+
+config:
+  logLevel: info
