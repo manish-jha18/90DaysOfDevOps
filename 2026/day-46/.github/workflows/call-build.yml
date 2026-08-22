@@ -1,0 +1,26 @@
+# Day 46 - the caller
+name: Call Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    # a whole JOB is replaced by the reusable workflow - note there is
+    # no runs-on and no steps here
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      app_name: devboard
+      environment: production
+    secrets:
+      docker_token: ${{ secrets.DOCKER_TOKEN }}
+
+  report:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Read the output from the reusable workflow
+        run: |
+          echo "the reusable workflow produced version: ${{ needs.build.outputs.build_version }}"

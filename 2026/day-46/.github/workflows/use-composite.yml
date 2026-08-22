@@ -1,0 +1,27 @@
+# Day 46 - using the composite action
+name: Use Composite Action
+
+on: workflow_dispatch
+
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+    steps:
+      # checkout is required BEFORE using a local action -
+      # the action file has to be on disk first
+      - uses: actions/checkout@v4
+
+      - name: Greet in English
+        uses: ./.github/actions/setup-and-greet
+        with:
+          name: Manish
+
+      - name: Greet in Hindi
+        id: hindi
+        uses: ./.github/actions/setup-and-greet
+        with:
+          name: Manish
+          language: hi
+
+      - name: Read the action output
+        run: echo "greeted = ${{ steps.hindi.outputs.greeted }}"

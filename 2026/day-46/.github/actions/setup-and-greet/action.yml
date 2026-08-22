@@ -1,0 +1,42 @@
+# Day 46 - a composite action. Lives in .github/actions/<name>/action.yml,
+# NOT in .github/workflows/.
+name: 'Setup and Greet'
+description: 'Greets in a chosen language and reports the runner details'
+
+inputs:
+  name:
+    description: 'Who to greet'
+    required: true
+  language:
+    description: 'Language code for the greeting'
+    required: false
+    default: en
+
+outputs:
+  greeted:
+    description: 'Whether the greeting ran'
+    value: ${{ steps.greet.outputs.greeted }}
+
+runs:
+  using: composite
+  steps:
+    - name: Greet
+      id: greet
+      # every step in a composite action MUST declare its shell
+      shell: bash
+      run: |
+        case "${{ inputs.language }}" in
+          hi) GREETING="Namaste" ;;
+          es) GREETING="Hola" ;;
+          fr) GREETING="Bonjour" ;;
+          *)  GREETING="Hello" ;;
+        esac
+        echo "$GREETING, ${{ inputs.name }}!"
+        echo "greeted=true" >> "$GITHUB_OUTPUT"
+
+    - name: Runner details
+      shell: bash
+      run: |
+        echo "Date       : $(date -u)"
+        echo "Runner OS  : ${{ runner.os }}"
+        echo "Runner arch: ${{ runner.arch }}"
