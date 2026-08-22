@@ -1,0 +1,10 @@
+# cp backend.hcl.example backend.hcl and fill in your bucket, or generate it:
+#   cd bootstrap && terraform output -raw backend_hcl > ../backend.hcl
+bucket = "devboard-tfstate-381492154712-us-west-2"
+key    = "devboard/day-64/terraform.tfstate"
+region = "us-west-2"
+
+encrypt = true
+
+# S3-native state locking. No DynamoDB table needed since terraform 1.11.
+use_lockfile = true
