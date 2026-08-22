@@ -1,0 +1,25 @@
+# Overrides for bitnami/nginx
+replicaCount: 2
+
+service:
+  # LoadBalancer is the chart default and stays <pending> on kind (day 53)
+  type: NodePort
+  nodePorts:
+    http: 30081
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 128Mi
+
+serverBlock: |-
+  server {
+    listen 8080;
+    location / {
+      return 200 "devboard nginx via helm\n";
+      add_header Content-Type text/plain;
+    }
+  }

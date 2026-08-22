@@ -1,0 +1,34 @@
+# Overrides for bitnami/postgresql. Everything not listed here keeps the
+# chart's default - see `helm show values bitnami/postgresql`, which is
+# about 1,200 lines.
+auth:
+  username: devboard
+  database: devboard
+  # local only. A real deployment uses existingSecret so the password is
+  # never in a values file (day 71 / day 80).
+  password: devboard
+  # existingSecret: devboard-postgres
+
+primary:
+  persistence:
+    enabled: true
+    size: 2Gi
+    # empty means the cluster default. Set explicitly on EKS, where
+    # nothing is marked default (day 66).
+    storageClass: ""
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# no read replicas for a demo
+readReplicas:
+  replicaCount: 0
+
+metrics:
+  # adds a postgres-exporter sidecar, scraped by prometheus (day 73)
+  enabled: false
