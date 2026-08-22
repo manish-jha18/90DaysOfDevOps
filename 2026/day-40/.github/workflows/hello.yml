@@ -1,0 +1,29 @@
+# Day 40 - my first GitHub Actions workflow
+name: Hello Actions
+
+on: push
+
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Say hello
+        run: echo "Hello from GitHub Actions!"
+
+      - name: Print the date and time
+        run: date
+
+      - name: Print the branch that triggered this run
+        run: echo "Branch is ${{ github.ref_name }}"
+
+      - name: List the files in the repo
+        run: ls -la
+
+      - name: Print the runner OS
+        run: |
+          echo "Runner OS   : $RUNNER_OS"
+          echo "Runner arch : $RUNNER_ARCH"
+          echo "Kernel      : $(uname -r)"
