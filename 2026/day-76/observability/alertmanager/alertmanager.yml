@@ -1,0 +1,38 @@
+route:
+  # group alerts that share these labels into one notification, rather
+  # than one message per firing series
+  group_by: ["alertname", "severity"]
+  # wait this long to collect more alerts before the first notification
+  group_wait: 30s
+  # then at most one update every 5 minutes for that group
+  group_interval: 5m
+  # do not re-send an unchanged firing alert more often than this
+  repeat_interval: 4h
+  receiver: default
+
+  routes:
+    - matchers:
+        - severity = "critical"
+      receiver: critical
+      repeat_interval: 1h
+
+inhibit_rules:
+  # if a critical is already firing for the same alertname, do not also
+  # send the warning. This is what stops one incident becoming 40 messages.
+  - source_matchers:
+      - severity = "critical"
+    target_matchers:
+      - severity = "warning"
+    equal: ["alertname", "instance"]
+
+receivers:
+  - name: default
+    # a webhook that just logs. Replace with slack_configs or email_configs.
+    webhook_configs:
+      - url: http://webhook-logger:8080/
+        send_resolved: true
+
+  - name: critical
+    webhook_configs:
+      - url: http://webhook-logger:8080/critical
+        send_resolved: true
