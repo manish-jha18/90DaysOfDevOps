@@ -1,0 +1,42 @@
+---
+- name: Configure nginx with handlers
+  hosts: webservers
+  become: true
+
+  tasks:
+    - name: Install nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+
+    - name: Deploy the nginx config
+      ansible.builtin.template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        mode: "0644"
+        # nginx -t against the candidate file. If it fails, ansible does
+        # not write the file at all - you cannot deploy a broken config.
+        validate: "nginx -t -c %s"
+      notify: Reload nginx
+
+    - name: Deploy the site config
+      ansible.builtin.template:
+        src: templates/site.conf.j2
+        dest: /etc/nginx/sites-available/devboard
+        mode: "0644"
+      notify: Reload nginx
+
+    - name: Enable the site
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/devboard
+        dest: /etc/nginx/sites-enabled/devboard
+        state: link
+      notify: Reload nginx
+
+  handlers:
+    # Notified three times above, but runs ONCE, at the end of the play.
+    # And only if something actually changed.
+    - name: Reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded

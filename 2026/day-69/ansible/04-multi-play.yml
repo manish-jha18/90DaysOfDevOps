@@ -1,0 +1,63 @@
+---
+# One file, three plays, each targeting a different group.
+# Plays run in order, top to bottom.
+
+- name: Common setup on every host
+  hosts: devboard
+  become: true
+
+  tasks:
+    - name: Install the base packages
+      ansible.builtin.apt:
+        name: "{{ common_packages }}"
+        state: present
+        update_cache: true
+
+    - name: Set the timezone
+      community.general.timezone:
+        name: "{{ timezone }}"
+
+- name: Database tier
+  hosts: dbservers
+  become: true
+
+  tasks:
+    - name: Install postgres
+      ansible.builtin.apt:
+        name: postgresql
+        state: present
+
+    - name: Start postgres
+      ansible.builtin.service:
+        name: postgresql
+        state: started
+        enabled: true
+
+- name: Web tier
+  hosts: webservers
+  become: true
+  # roll one host at a time so the site never goes fully down
+  serial: 1
+
+  tasks:
+    - name: Install nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+
+    - name: Start nginx
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Wait for it to answer before moving to the next host
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}:{{ http_port }}"
+        status_code: 200
+      delegate_to: localhost
+      become: false
+      retries: 5
+      delay: 3
+      register: result
+      until: result.status == 200

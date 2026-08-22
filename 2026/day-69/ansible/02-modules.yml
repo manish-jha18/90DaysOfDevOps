@@ -1,0 +1,86 @@
+---
+# The modules that cover most of what you actually do.
+- name: Essential modules tour
+  hosts: webservers
+  become: true
+
+  tasks:
+    # --- packages ---
+    - name: Install packages
+      ansible.builtin.apt:
+        name: "{{ common_packages }}"
+        state: present
+        update_cache: true
+        cache_valid_time: 3600 # skip apt-get update if it ran within the hour
+
+    # --- files and directories ---
+    - name: Create the app directory
+      ansible.builtin.file:
+        path: /opt/devboard
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+
+    - name: Copy a static file
+      ansible.builtin.copy:
+        src: files/index.html
+        dest: /var/www/html/index.html
+        owner: www-data
+        group: www-data
+        mode: "0644"
+        # keep a timestamped copy of whatever was there before
+        backup: true
+
+    - name: Render a config from a template
+      ansible.builtin.template:
+        src: templates/app.conf.j2
+        dest: /etc/devboard/app.conf
+        mode: "0644"
+        # refuse to write a broken config
+        validate: "test -f %s"
+
+    # --- line-level edits ---
+    - name: Ensure a setting exists in a config file
+      ansible.builtin.lineinfile:
+        path: /etc/security/limits.conf
+        regexp: '^\*\s+soft\s+nofile'
+        line: "*    soft    nofile    65536"
+        state: present
+
+    - name: Insert a managed block
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        # the marker is how ansible finds the block again to update it
+        marker: "# {mark} DEVBOARD MANAGED"
+        block: |
+          10.0.1.10  db1.internal
+          10.0.1.11  cache.internal
+
+    # --- users ---
+    - name: Create the app user
+      ansible.builtin.user:
+        name: devboard
+        shell: /bin/bash
+        groups: docker
+        append: true # WITHOUT append, this REPLACES all their other groups
+        create_home: true
+
+    # --- commands, last resort ---
+    - name: Run something with no module
+      ansible.builtin.command:
+        cmd: /usr/local/bin/devboard-init
+        # creates: makes a command idempotent - skipped if the file exists
+        creates: /opt/devboard/.initialised
+
+    - name: Read something without changing anything
+      ansible.builtin.command:
+        cmd: nginx -v
+      register: nginx_version
+      # a read-only command is never a change; without this every run
+      # reports "changed" and the output becomes useless
+      changed_when: false
+
+    - name: Show what it said
+      ansible.builtin.debug:
+        var: nginx_version.stderr
