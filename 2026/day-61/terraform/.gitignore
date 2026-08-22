@@ -1,0 +1,8 @@
+# never commit state - it contains resource IDs and often plaintext secrets
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+crash.log
