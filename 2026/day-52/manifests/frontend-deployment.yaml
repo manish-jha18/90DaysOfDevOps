@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devboard-frontend
+  namespace: devboard-dev
+  labels:
+    app: devboard-frontend
+spec:
+  replicas: 3
+  selector:
+    # the selector is immutable after creation and MUST match the
+    # pod template labels below, or the deployment is rejected
+    matchLabels:
+      app: devboard-frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1          # at most 1 extra pod above replicas during a rollout
+      maxUnavailable: 0    # never drop below 3 available - zero downtime
+  template:
+    metadata:
+      labels:
+        app: devboard-frontend
+    spec:
+      containers:
+        - name: devboard-frontend
+          image: manishjha18/devboard-frontend:latest
+          ports:
+            - containerPort: 4173
