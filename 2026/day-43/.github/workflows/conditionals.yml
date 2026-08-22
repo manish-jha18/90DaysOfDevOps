@@ -1,0 +1,45 @@
+# Day 43 Task 4 - conditionals
+name: Conditionals
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  conditional-steps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Always runs
+        run: echo "this always runs"
+
+      - name: Only on main
+        if: github.ref == 'refs/heads/main'
+        run: echo "we are on main"
+
+      - name: Allowed to fail
+        id: risky
+        continue-on-error: true
+        run: |
+          echo "about to fail on purpose"
+          exit 1
+
+      - name: Runs because the previous step failed
+        # without always()/failure(), a step is skipped once anything failed
+        if: failure()
+        run: echo "something above me failed"
+
+      - name: Reacts to the risky step specifically
+        if: steps.risky.outcome == 'failure'
+        run: echo "the risky step reported failure but did not stop the job"
+
+      - name: Runs no matter what
+        if: always()
+        run: echo "cleanup would go here"
+
+  push-only:
+    # a whole job gated on the event type
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "this job only runs on push, not on pull_request"

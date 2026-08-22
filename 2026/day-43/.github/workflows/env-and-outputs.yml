@@ -1,0 +1,52 @@
+# Day 43 Task 2 & 3 - env vars at three levels, and passing data between jobs
+name: Env and Outputs
+
+on: workflow_dispatch
+
+# workflow level - visible to every job
+env:
+  APP_NAME: myapp
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    # job level - visible to every step in this job only
+    env:
+      ENVIRONMENT: staging
+    # declare what this job hands to other jobs
+    outputs:
+      build_date: ${{ steps.stamp.outputs.build_date }}
+      short_sha: ${{ steps.stamp.outputs.short_sha }}
+    steps:
+      - name: Print all three levels
+        # step level - visible to this step only
+        env:
+          VERSION: 1.0.0
+        run: |
+          echo "workflow level : APP_NAME    = $APP_NAME"
+          echo "job level      : ENVIRONMENT = $ENVIRONMENT"
+          echo "step level     : VERSION     = $VERSION"
+
+      - name: Print GitHub context values
+        run: |
+          echo "commit sha : ${{ github.sha }}"
+          echo "actor      : ${{ github.actor }}"
+          echo "repo       : ${{ github.repository }}"
+          echo "event      : ${{ github.event_name }}"
+
+      - name: Set outputs for the next job
+        id: stamp        # the id is how other steps/jobs reference this one
+        run: |
+          echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)" >> "$GITHUB_OUTPUT"
+
+  consume:
+    runs-on: ubuntu-latest
+    needs: produce       # needed both to order the jobs AND to read the outputs
+    steps:
+      - name: Read what the previous job produced
+        run: |
+          echo "build date from produce : ${{ needs.produce.outputs.build_date }}"
+          echo "short sha from produce  : ${{ needs.produce.outputs.short_sha }}"
+          echo "APP_NAME still visible  : $APP_NAME"
+          echo "ENVIRONMENT is NOT      : '${ENVIRONMENT:-unset}'"

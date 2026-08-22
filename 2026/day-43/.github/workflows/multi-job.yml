@@ -1,0 +1,22 @@
+# Day 43 Task 1 - job dependencies
+name: Multi Job
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Building the app"
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build          # waits for build to succeed
+    steps:
+      - run: echo "Running tests"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test           # waits for test, which waits for build
+    steps:
+      - run: echo "Deploying"

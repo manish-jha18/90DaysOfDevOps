@@ -1,0 +1,44 @@
+# Day 43 Task 5 - lint and test in parallel, then a summary
+name: Smart Pipeline
+
+on: push
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint
+        run: echo "linting..."
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: echo "testing..."
+
+  summary:
+    runs-on: ubuntu-latest
+    # both must finish; they ran in parallel because neither needs the other
+    needs: [lint, test]
+    if: always()      # so the summary still runs when lint or test failed
+    steps:
+      - name: Branch type
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "This is a MAIN branch push"
+          else
+            echo "This is a FEATURE branch push: ${{ github.ref_name }}"
+          fi
+
+      - name: Commit message
+        env:
+          MSG: ${{ github.event.head_commit.message }}
+        run: |
+          echo "Commit message: $MSG"
+
+      - name: Report upstream results
+        run: |
+          echo "lint result: ${{ needs.lint.result }}"
+          echo "test result: ${{ needs.test.result }}"
