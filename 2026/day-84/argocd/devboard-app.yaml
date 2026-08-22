@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devboard
+  # Applications live in the argocd namespace, not in the namespace they deploy to
+  namespace: argocd
+  # keeps argocd from deleting the app's resources if the Application object
+  # itself is deleted by accident
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/manish-jha18/devboard.git
+    # a BRANCH here means argocd follows every commit. A tag or a SHA pins it.
+    targetRevision: mega-project
+    path: helm/devboard
+    helm:
+      releaseName: devboard
+      valueFiles:
+        - values.yaml
+
+  destination:
+    # the cluster argocd itself runs in
+    server: https://kubernetes.default.svc
+    namespace: devboard
+
+  # The HPA owns spec.replicas (day 58). Without this, argocd sees the HPA's
+  # value differ from git, reports OutOfSync forever, and with selfHeal on it
+  # fights the HPA every few seconds.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+
+  syncPolicy:
+    automated:
+      # delete resources removed from git. Without prune, deleting a file
+      # leaves the object running in the cluster forever.
+      prune: true
+      # revert manual changes back to git
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

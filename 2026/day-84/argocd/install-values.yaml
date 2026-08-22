@@ -1,0 +1,39 @@
+# Values for the argo-cd Helm chart.
+configs:
+  params:
+    # Serve plain HTTP. The load balancer or ingress terminates TLS, and
+    # without this argocd-server does its own TLS and you get a redirect
+    # loop behind a proxy that is already terminating.
+    server.insecure: true
+
+server:
+  # ClusterIP + port-forward for a learning cluster. A real one puts an
+  # HTTPRoute in front so it is not another load balancer to pay for.
+  service:
+    type: ClusterIP
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+controller:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+repoServer:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi

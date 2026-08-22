@@ -1,0 +1,40 @@
+# The same application, pinned to a tag instead of a branch, and with
+# automated sync OFF. This is what a production Application looks like:
+# a human decides when, git decides what.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devboard-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/manish-jha18/devboard.git
+    # an immutable tag - the same reasoning as a SHA image tag (day 45)
+    targetRevision: v1.0.0
+    path: helm/devboard
+    helm:
+      releaseName: devboard
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: devboard-prod
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+
+  # no syncPolicy.automated - sync is a deliberate act.
+  # selfHeal is still worth having so drift is REVERTED even when new
+  # deployments are manual.
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
