@@ -1,0 +1,37 @@
+---
+- name: Deploy DevBoard
+  hosts: webservers
+  become: true
+
+  vars_files:
+    - group_vars/vault.yml
+
+  # roles run in order, and each one assumes the previous has finished
+  roles:
+    - role: common
+      tags: [common]
+
+    - role: docker
+      tags: [docker]
+
+    - role: nginx
+      tags: [nginx]
+
+  post_tasks:
+    - name: Check the app through nginx
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}/health"
+        status_code: 200
+        return_content: true
+      delegate_to: localhost
+      become: false
+      register: public_health
+      retries: 5
+      delay: 3
+      until: public_health.status == 200
+
+    - name: Report
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }} is live at http://{{ ansible_host }}
+          (health: {{ public_health.content | trim }})

@@ -1,0 +1,42 @@
+# {{ ansible_managed }}
+
+upstream devboard_frontend {
+    server {{ nginx_frontend_upstream }};
+}
+
+upstream devboard_backend {
+    server {{ nginx_backend_upstream }};
+}
+
+server {
+    listen {{ nginx_port }};
+    server_name {{ nginx_server_name }};
+
+    # /api goes to the Go backend, everything else to the React app
+    location /api/ {
+        # trailing slash strips the /api prefix before proxying
+        proxy_pass http://devboard_backend/;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        proxy_pass http://devboard_frontend;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # vite preview uses websockets for HMR
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /health {
+        access_log off;
+        proxy_pass http://devboard_backend/health;
+    }
+}

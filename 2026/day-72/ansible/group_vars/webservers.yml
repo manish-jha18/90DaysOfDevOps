@@ -1,0 +1,8 @@
+---
+# non-secret settings, referencing the encrypted values by name
+dockerhub_username: "{{ vault_dockerhub_username }}"
+dockerhub_token: "{{ vault_dockerhub_token }}"
+postgres_password: "{{ vault_postgres_password }}"
+
+docker_backend_image: manishjha18/devboard-backend:latest
+docker_frontend_image: manishjha18/devboard-frontend:latest

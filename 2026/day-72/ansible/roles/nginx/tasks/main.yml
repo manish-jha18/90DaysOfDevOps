@@ -1,0 +1,40 @@
+---
+- name: Install nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Remove the distro default site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: Deploy the reverse proxy config
+  ansible.builtin.template:
+    src: devboard.conf.j2
+    dest: /etc/nginx/sites-available/devboard
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Enable the site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/devboard
+    dest: /etc/nginx/sites-enabled/devboard
+    state: link
+  notify: Reload nginx
+
+# validate: on the template only checks that one file. This checks the
+# whole assembled config, including the symlink above.
+- name: Validate the full nginx configuration
+  ansible.builtin.command:
+    cmd: nginx -t
+  changed_when: false
+
+- name: Start nginx and enable it at boot
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

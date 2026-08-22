@@ -1,0 +1,114 @@
+---
+- name: Install prerequisites for the docker repository
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+    state: present
+    update_cache: true
+
+- name: Create the keyring directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Add the docker GPG key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+- name: Add the docker repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch={{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}
+      signed-by=/etc/apt/keyrings/docker.asc]
+      https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+    filename: docker
+    state: present
+
+- name: Install docker engine and the compose plugin
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+
+- name: Start docker and enable it at boot
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add users to the docker group
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: docker
+    # WITHOUT append this wipes their other groups, including sudo
+    append: true
+  loop: "{{ docker_users }}"
+  # group membership is read at login, so an existing session is unaffected
+  notify: Reset connection
+
+# python docker SDK, required by the community.docker modules
+- name: Install the docker python SDK
+  ansible.builtin.pip:
+    name: docker
+    state: present
+    break_system_packages: true
+
+- name: Log in to Docker Hub
+  community.docker.docker_login:
+    username: "{{ dockerhub_username }}"
+    password: "{{ dockerhub_token }}"
+  # the token would otherwise appear in verbose output and in the log
+  no_log: true
+  when: dockerhub_token is defined and dockerhub_token | length > 0
+
+- name: Create the compose directory
+  ansible.builtin.file:
+    path: "{{ docker_compose_dir }}"
+    state: directory
+    owner: "{{ common_app_user }}"
+    group: "{{ common_app_user }}"
+    mode: "0755"
+
+- name: Deploy the compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ docker_compose_dir }}/docker-compose.yml"
+    owner: "{{ common_app_user }}"
+    mode: "0644"
+  notify: Restart the stack
+
+- name: Deploy the env file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ docker_compose_dir }}/.env"
+    owner: "{{ common_app_user }}"
+    # 0600 - it holds the database password
+    mode: "0600"
+  no_log: true
+  notify: Restart the stack
+
+- name: Bring the stack up
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_dir }}"
+    state: present
+    pull: always
+  register: compose_result
+
+- name: Wait for the backend to answer
+  ansible.builtin.uri:
+    url: "http://localhost:{{ docker_backend_port }}/health"
+    status_code: 200
+  register: backend_health
+  until: backend_health.status == 200
+  retries: 20
+  delay: 3

@@ -1,0 +1,21 @@
+---
+- name: Update the apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install the base packages
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+
+- name: Set the timezone
+  community.general.timezone:
+    name: "{{ common_timezone }}"
+
+- name: Create the application user
+  ansible.builtin.user:
+    name: "{{ common_app_user }}"
+    shell: /bin/bash
+    create_home: true
+    state: present

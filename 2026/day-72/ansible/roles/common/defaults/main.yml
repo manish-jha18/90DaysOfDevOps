@@ -1,0 +1,9 @@
+---
+common_packages:
+  - curl
+  - git
+  - jq
+  - unzip
+  - python3-pip
+common_timezone: Asia/Kolkata
+common_app_user: devboard

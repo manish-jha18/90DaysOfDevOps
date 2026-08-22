@@ -1,0 +1,6 @@
+---
+# cp vault.yml.example vault.yml, put real values in, then:
+#   ansible-vault encrypt group_vars/vault.yml
+vault_dockerhub_username: manishjha18
+vault_dockerhub_token: dckr_pat_REPLACE_ME
+vault_postgres_password: REPLACE_ME

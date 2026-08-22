@@ -1,0 +1,5 @@
+---
+nginx_port: 80
+nginx_server_name: _
+nginx_frontend_upstream: "127.0.0.1:{{ docker_frontend_port }}"
+nginx_backend_upstream: "127.0.0.1:{{ docker_backend_port }}"

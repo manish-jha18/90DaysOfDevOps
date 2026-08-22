@@ -1,0 +1,16 @@
+---
+docker_users:
+  - "{{ common_app_user }}"
+  - ubuntu
+
+docker_compose_dir: /opt/devboard
+
+# images to run. Overridden in group_vars for a real deployment.
+docker_backend_image: manishjha18/devboard-backend:latest
+docker_frontend_image: manishjha18/devboard-frontend:latest
+docker_postgres_image: postgres:16-alpine
+
+docker_postgres_user: devboard
+docker_postgres_db: devboard
+docker_backend_port: 8081
+docker_frontend_port: 4173

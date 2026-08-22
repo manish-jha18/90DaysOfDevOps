@@ -1,0 +1,40 @@
+# {{ ansible_managed }}
+services:
+  postgres:
+    image: {{ docker_postgres_image }}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    image: {{ docker_backend_image }}
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      POSTGRES_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:{{ docker_backend_port }}:8080"
+
+  frontend:
+    image: {{ docker_frontend_image }}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    # bound to localhost only - nginx on the host is the public entry point
+    ports:
+      - "127.0.0.1:{{ docker_frontend_port }}:4173"
+
+volumes:
+  pgdata:
