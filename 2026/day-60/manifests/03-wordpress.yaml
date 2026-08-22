@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+  namespace: capstone
+  labels:
+    app: wordpress
+spec:
+  # no replicas: field - the HPA in 05 owns it (day 58)
+  selector:
+    matchLabels:
+      app: wordpress
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: wordpress
+    spec:
+      containers:
+        - name: wordpress
+          image: wordpress:6.5-apache
+          ports:
+            - containerPort: 80
+              name: http
+          env:
+            - name: WORDPRESS_DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: wordpress-config
+                  key: WORDPRESS_DB_HOST
+            - name: WORDPRESS_DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: wordpress-config
+                  key: MYSQL_DATABASE
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: wordpress-config
+                  key: MYSQL_USER
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wordpress-secrets
+                  key: MYSQL_PASSWORD
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          # wordpress can take a while on first boot while it writes
+          # its files, so a startup probe guards the other two
+          startupProbe:
+            httpGet:
+              path: /
+              port: 80
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            periodSeconds: 15
+          volumeMounts:
+            - name: uploads
+              mountPath: /var/www/html/wp-content/uploads
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: wordpress-uploads
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wordpress-uploads
+  namespace: capstone
+spec:
+  storageClassName: standard
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
