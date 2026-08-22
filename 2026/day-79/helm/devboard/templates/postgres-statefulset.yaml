@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "devboard.fullname" . }}
+  labels:
+    {{- include "devboard.labels" . | nindent 4 }}
+    component: postgres
+spec:
+  # headless - gives postgres-0 a stable DNS name (day 56)
+  clusterIP: None
+  selector:
+    {{- include "devboard.selectorLabels" . | nindent 4 }}
+    component: postgres
+  ports:
+    - port: {{ .Values.postgres.port }}
+      targetPort: postgres
+      name: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "devboard.fullname" . }}-postgres
+  labels:
+    {{- include "devboard.labels" . | nindent 4 }}
+    component: postgres
+spec:
+  serviceName: {{ include "devboard.fullname" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "devboard.selectorLabels" . | nindent 6 }}
+      component: postgres
+  template:
+    metadata:
+      labels:
+        {{- include "devboard.labels" . | nindent 8 }}
+        component: postgres
+    spec:
+      terminationGracePeriodSeconds: 20
+      containers:
+        - name: postgres
+          image: {{ .Values.postgres.image | quote }}
+          ports:
+            - containerPort: {{ .Values.postgres.port }}
+              name: postgres
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "devboard.fullname" . }}-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "devboard.fullname" . }}-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "devboard.fullname" . }}-secrets
+                  key: POSTGRES_PASSWORD
+            # a mounted volume always contains lost+found, and postgres
+            # refuses to initialise into a non-empty directory (day 55)
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+            # far more relaxed than readiness - liveness KILLS the container
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+          resources:
+            {{- toYaml .Values.postgres.resources | nindent 12 }}
+      volumes:
+        - name: initdb
+          configMap:
+            name: {{ include "devboard.fullname" . }}-initdb
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- if .Values.postgres.storage.storageClassName }}
+        storageClassName: {{ .Values.postgres.storage.storageClassName | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.postgres.storage.size }}

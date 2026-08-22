@@ -1,0 +1,111 @@
+# Defaults. Every value here can be overridden with -f or --set.
+# Day 80 adds values-dev.yaml / values-staging.yaml / values-prod.yaml.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# ---------------------------------------------------------------- postgres
+postgres:
+  image: postgres:16-alpine
+  user: devboard
+  database: devboard
+  # local default only. Day 80 moves this to a real secret.
+  password: devboard
+  port: 5432
+
+  storage:
+    size: 1Gi
+    # empty means "use the cluster default class". On EKS that is a trap -
+    # nothing is default there, so a PVC hangs Pending (day 66).
+    storageClassName: ""
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# ---------------------------------------------------------------- backend
+backend:
+  image:
+    repository: manishjha18/devboard-backend
+    # empty falls back to .Chart.AppVersion - see the template
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  replicas: 1
+  port: 8080
+
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+# ---------------------------------------------------------------- frontend
+frontend:
+  image:
+    repository: manishjha18/devboard-frontend
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  replicas: 1
+  containerPort: 4173
+  servicePort: 80
+
+  service:
+    type: ClusterIP
+    # only used when type is NodePort
+    nodePort: 30080
+
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+  hpa:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 60
+
+# ---------------------------------------------------------------- ingress
+ingress:
+  enabled: false
+  className: nginx
+  host: devboard.local
+  annotations: {}
+  tls:
+    enabled: false
+    secretName: ""
+
+# ---------------------------------------------------------- observability
+# Wires the OTel env vars from days 76-77 into the app containers.
+observability:
+  enabled: false
+  otlpEndpoint: otel-collector.observability.svc.cluster.local:4317
+
+# ---------------------------------------------------------------- probes
+# Exposed so a slow environment can loosen them without editing templates.
+probes:
+  liveness:
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 2
+
+# --------------------------------------------------------------- scheduling
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations: {}

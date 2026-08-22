@@ -1,0 +1,32 @@
+{{ .Chart.Name }} {{ .Chart.AppVersion }} deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Watch it come up:
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }} -w
+
+Reach the app:
+{{- if .Values.ingress.enabled }}
+  http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.host }}
+{{- else if eq .Values.frontend.service.type "NodePort" }}
+  http://<any-node-ip>:{{ .Values.frontend.service.nodePort }}
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "devboard.fullname" . }}-frontend 8080:{{ .Values.frontend.servicePort }}
+  then open http://localhost:8080
+{{- end }}
+
+Configuration in effect:
+  backend  : {{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default .Chart.AppVersion }} x {{ .Values.backend.replicas }}
+  frontend : {{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag | default .Chart.AppVersion }} x {{ if .Values.frontend.hpa.enabled }}HPA {{ .Values.frontend.hpa.minReplicas }}-{{ .Values.frontend.hpa.maxReplicas }}{{ else }}{{ .Values.frontend.replicas }}{{ end }}
+  postgres : {{ .Values.postgres.image }}, {{ .Values.postgres.storage.size }} volume
+  tracing  : {{ if .Values.observability.enabled }}on -> {{ .Values.observability.otlpEndpoint }}{{ else }}off{{ end }}
+
+{{- if not .Values.postgres.storage.storageClassName }}
+
+NOTE: no storageClassName is set, so the cluster default is used. On EKS
+nothing is marked default out of the box and the PVC will hang Pending.
+Set postgres.storage.storageClassName if that happens.
+{{- end }}
+{{- if eq .Values.postgres.password "devboard" }}
+
+WARNING: postgres.password is still the chart default. Override it with
+-f values-prod.yaml or --set before using this anywhere real.
+{{- end }}

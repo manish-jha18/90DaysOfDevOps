@@ -1,0 +1,17 @@
+apiVersion: v2
+name: devboard
+description: DevBoard - a 3-tier task tracker (React + Go + Postgres) packaged for Kubernetes
+type: application
+
+# chart version - bump when the TEMPLATES change
+version: 0.1.0
+
+# app version - what is inside. Purely informational, but it is the
+# default for image tags via .Chart.AppVersion
+appVersion: "1.0.0"
+
+keywords:
+  - devboard
+  - demo
+maintainers:
+  - name: manish-jha18
