@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "kubernetes-tools": {
+      "command": "/home/devops/agentic-ai-for-devops/.venv/bin/python3",
+      "args": [
+        "/home/devops/day-88/agents/mcp_server.py"
+      ]
+    }
+  }
+}

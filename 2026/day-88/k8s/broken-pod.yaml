@@ -1,0 +1,13 @@
+# Deliberately broken - prints one line, sleeps, exits 1. Kubernetes restarts
+# it, it fails the same way, and after a few rounds it lands in
+# CrashLoopBackOff. Something for the agent to diagnose.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: broken-pod
+  namespace: default
+spec:
+  containers:
+    - name: app
+      image: nginx:alpine
+      command: ["sh", "-c", "echo 'app starting...' && sleep 2 && exit 1"]
