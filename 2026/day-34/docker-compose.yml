@@ -1,0 +1,76 @@
+# Day 34 - app + database + cache
+services:
+  web:
+    build: ./app
+    image: day34-web:latest
+    restart: on-failure
+    ports:
+      - "${WEB_PORT}:5000"
+    environment:
+      DB_HOST: db
+      REDIS_HOST: cache
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      db:
+        # wait for the database to pass its healthcheck, not just to start
+        condition: service_healthy
+      cache:
+        condition: service_started
+    networks:
+      - frontend
+      - backend
+    labels:
+      com.manish.project: "day34-stack"
+      com.manish.tier: "application"
+
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      # pg_isready returns 0 only once postgres is accepting connections
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      # backend only - not reachable from the frontend network
+      - backend
+    labels:
+      com.manish.project: "day34-stack"
+      com.manish.tier: "database"
+
+  cache:
+    image: redis:7-alpine
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - cache_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - backend
+    labels:
+      com.manish.project: "day34-stack"
+      com.manish.tier: "cache"
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
+volumes:
+  db_data:
+  cache_data:
