@@ -1,0 +1,32 @@
+# Day 42 Task 1 & 2 - the three GitHub-hosted runner families
+name: Runner Info
+
+on: workflow_dispatch
+
+jobs:
+  info:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Who and where am I
+        # shell: bash forces git-bash on the windows runner too,
+        # otherwise these commands would need a powershell variant
+        shell: bash
+        run: |
+          echo "OS       : ${{ runner.os }}"
+          echo "Arch     : ${{ runner.arch }}"
+          echo "Hostname : $(hostname)"
+          echo "User     : $(whoami)"
+          echo "Workdir  : $(pwd)"
+
+      - name: What is pre-installed
+        shell: bash
+        run: |
+          echo "docker : $(docker --version 2>/dev/null || echo 'not available')"
+          echo "python : $(python3 --version 2>&1)"
+          echo "node   : $(node --version)"
+          echo "git    : $(git --version)"
+          echo "go     : $(go version 2>/dev/null || echo 'not available')"

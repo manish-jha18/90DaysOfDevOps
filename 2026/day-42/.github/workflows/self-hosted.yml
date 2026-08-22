@@ -1,0 +1,26 @@
+# Day 42 Task 4 & 5 - run on my own machine
+name: Self Hosted
+
+on: workflow_dispatch
+
+jobs:
+  on-my-machine:
+    # [self-hosted, linux, devboard-runner] means ALL three labels must match.
+    # Plain "runs-on: self-hosted" would take any self-hosted runner.
+    runs-on: [self-hosted, linux, devboard-runner]
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Prove which machine this is
+        run: |
+          echo "Hostname : $(hostname)"
+          echo "User     : $(whoami)"
+          echo "Workdir  : $(pwd)"
+          echo "Uptime   : $(uptime -p)"
+
+      - name: Write a file that will survive the run
+        run: |
+          echo "written by run ${{ github.run_id }} at $(date -u)" \
+            >> "$HOME/actions-proof.txt"
+          cat "$HOME/actions-proof.txt"
