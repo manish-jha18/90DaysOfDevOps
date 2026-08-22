@@ -1,0 +1,13 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    # the compose service name - grafana resolves it on the compose network
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      # must match prometheus's scrape_interval, or graphs show gaps
+      timeInterval: 15s
