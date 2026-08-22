@@ -1,0 +1,48 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+# where promtail remembers how far it read in each file. Without this
+# a restart re-ships every log it can still see.
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # discover containers from the docker socket rather than tailing files
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+
+    relabel_configs:
+      # docker container names come through with a leading slash
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: container
+
+      - source_labels: ["__meta_docker_container_log_stream"]
+        target_label: stream
+
+      # compose project, so several stacks on one host stay separated
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_project"]
+        target_label: compose_project
+
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: service
+
+    pipeline_stages:
+      # pull the level out of the line and make it a label, so LogQL can
+      # filter on it without a regex on every query
+      - regex:
+          expression: '(?i)(?P<level>DEBUG|INFO|WARN|WARNING|ERROR|FATAL|CRITICAL)'
+      - labels:
+          level:
+      # use the log line's own timestamp where there is one, so a delayed
+      # shipment does not bunch everything at ingestion time
+      - timestamp:
+          source: time
+          format: RFC3339Nano
+          action_on_failure: skip

@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: devboard-local
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: node-exporter
+    static_configs:
+      # host.docker.internal because node-exporter runs with network_mode: host,
+      # so it is NOT on the compose network and cannot be reached by name
+      - targets: ["host.docker.internal:9100"]
+        labels:
+          instance: devboard-host
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]

@@ -1,0 +1,28 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 15s
+
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      maxLines: 1000
+      # this is what makes a trace id in a log line CLICKABLE through to
+      # tempo. Without it, correlating logs and traces is copy-paste.
+      derivedFields:
+        - name: TraceID
+          matcherRegex: 'trace_id=(\w+)'
+          url: "$${__value.raw}"
+          datasourceUid: tempo
