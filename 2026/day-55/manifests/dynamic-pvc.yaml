@@ -1,0 +1,14 @@
+# Dynamic provisioning: no PV written by hand. The StorageClass
+# provisioner creates one on demand when this claim is created.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc-dynamic
+  namespace: devboard-dev
+spec:
+  storageClassName: standard   # kind's default class (local-path-provisioner)
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

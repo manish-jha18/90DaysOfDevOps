@@ -1,0 +1,18 @@
+# Static provisioning: an admin creates the PV by hand.
+# hostPath only works on a single-node cluster (or pins the pod to one node)
+# because the directory lives on ONE node's filesystem.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv
+  labels:
+    app: devboard-postgres
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce          # one NODE can mount it read-write
+  persistentVolumeReclaimPolicy: Retain   # keep the data when the PVC is deleted
+  storageClassName: manual
+  hostPath:
+    path: /mnt/devboard-postgres

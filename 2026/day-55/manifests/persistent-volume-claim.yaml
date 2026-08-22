@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: devboard-dev
+spec:
+  storageClassName: manual   # must match the PV's class to bind
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi         # asks for 500Mi; binds to the 1Gi PV and gets ALL of it
