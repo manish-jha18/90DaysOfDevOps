@@ -1,0 +1,17 @@
+# The DevBoard frontend as a bare Pod. Useful to prove the image runs,
+# but nothing recreates it if the node dies - see day-52 for Deployments.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: devboard-frontend
+  namespace: default
+  labels:
+    app: devboard-frontend
+    tier: frontend
+    project: devboard
+spec:
+  containers:
+    - name: devboard-frontend
+      image: manishjha18/devboard-frontend:latest
+      ports:
+        - containerPort: 4173

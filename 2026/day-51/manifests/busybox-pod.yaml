@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox-pod
+  labels:
+    app: busybox
+    tier: tools
+spec:
+  containers:
+    - name: busybox
+      image: busybox:1.36
+      # without a long-running command the container exits immediately
+      # and the pod goes into CrashLoopBackOff
+      command: ["sh", "-c", "while true; do echo alive at $(date); sleep 30; done"]
+  restartPolicy: Always
